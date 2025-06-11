@@ -234,7 +234,10 @@ const languageOptions = [
   { code: 'de', label: 'Deutsch' },
 ];
 
-const LanguageSelect = styled.select`
+const LanguageContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-top: 16px;
   padding: 10px 16px;
   border-radius: 12px;
@@ -244,14 +247,30 @@ const LanguageSelect = styled.select`
   font-size: 1rem;
   font-family: inherit;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  appearance: none;
-  outline: none;
   transition: border 0.2s;
   cursor: pointer;
-  &:focus {
-    border: 1.5px solid #ff6600;
-    background: #fff;
-  }
+`;
+
+const GlobalIcon = styled.span`
+  font-size: 1.2rem;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const LanguageSelect = styled.select`
+  border: none;
+  background: transparent;
+  color: #222;
+  font-size: 1rem;
+  font-family: inherit;
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  width: 100%;
 `;
 
 const LanguageOption = styled.option`
@@ -400,7 +419,16 @@ export default function AuthPage() {
               {loading ? t('signingIn') : t('signin')}
             </Button>
           </ButtonContainer>
-          <LanguageSelector style={{ width: '100%' }} />
+          <LanguageContainer>
+            <GlobalIcon>🌐</GlobalIcon>
+            <LanguageSelect value={language} onChange={handleLanguageChange}>
+              {languageOptions.map(option => (
+                <option key={option.code} value={option.code}>
+                  {option.label}
+                </option>
+              ))}
+            </LanguageSelect>
+          </LanguageContainer>
           <Footer>Mediaair Brands Limited</Footer>
         </Content>
         <NavigationArrows 

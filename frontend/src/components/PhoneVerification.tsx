@@ -3,33 +3,92 @@ import styled, { createGlobalStyle } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import icon from '../icon.png';
 import { useTranslation } from 'react-i18next';
-import LanguageSelector from './LanguageSelector';
 
 const GlobalStyle = createGlobalStyle`
   @font-face {
     font-family: 'Interstate';
-    src: url('/fonts/InterstateBoldCondensed.otf') format('opentype');
-    font-weight: bold;
+    src: url('/fonts/Interstate-Regular.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
   }
   @font-face {
     font-family: 'Interstate';
-    src: url('/fonts/InterstateLightCondensed.otf') format('opentype');
-    font-weight: 300;
+    src: url('/fonts/Interstate-Bold.woff2') format('woff2');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
   }
-  body {
-    font-family: 'Interstate', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  @font-face {
+    font-family: 'Interstate';
+    src: url('/fonts/Interstate-Light.woff2') format('woff2');
+    font-weight: 300;
+    font-style: normal;
+    font-display: swap;
   }
 `;
 
 const Container = styled.div`
   min-height: 100vh;
+  width: 100vw;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   background: #fff;
-  padding: 0 20px;
-  font-family: 'Interstate', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  padding: 40px 24px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  max-width: 480px;
+`;
+
+const TopSpace = styled.div`
+  height: 40px;
+`;
+
+const Logo = styled.img`
+  width: 120px;
+  height: 120px;
+  margin-bottom: 32px;
+  object-fit: contain;
+`;
+
+const TextContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 40px;
+  width: 100%;
+  max-width: 400px;
+`;
+
+const Title = styled.h1`
+  color: #ff6600;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 16px 0;
+  font-family: 'Interstate', sans-serif;
+  line-height: 1.4;
+`;
+
+const Subtitle = styled.h2`
+  color: #222;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 16px 0;
+  font-family: 'Interstate', sans-serif;
+  line-height: 1.4;
+`;
+
+const Description = styled.p`
+  color: #666;
+  font-size: 1rem;
+  font-weight: 300;
+  margin: 0;
+  line-height: 1.5;
+  font-family: 'Interstate', sans-serif;
+  max-width: 320px;
 `;
 
 const TopBar = styled.div`
@@ -48,14 +107,6 @@ const BackArrow = styled.button`
   cursor: pointer;
   margin-right: 8px;
   margin-left: 0;
-`;
-
-const Logo = styled.img`
-  display: block;
-  margin: 0 auto 0 auto;
-  width: 80px;
-  height: auto;
-  margin-bottom: 8px;
 `;
 
 const Tagline = styled.div`
@@ -108,70 +159,103 @@ const Form = styled.form`
   max-width: 400px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  gap: 16px;
   margin: 0 auto;
 `;
 
 const Label = styled.label`
   color: #222;
-  font-size: 1.1rem;
-  font-weight: 500;
+  font-size: 0.9rem;
+  font-weight: 700;
   margin-bottom: 4px;
+  width: 100%;
+  text-align: left;
   font-family: 'Interstate', sans-serif;
 `;
 
 const Input = styled.input`
   width: 100%;
-  padding: 16px;
-  border-radius: 4px;
-  border: 1px solid #bbb;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
   background: #fafafa;
   color: #222;
-  font-size: 1.1rem;
-  margin-bottom: 8px;
+  font-size: 1rem;
   font-family: 'Interstate', sans-serif;
+  font-weight: 300;
+  box-sizing: border-box;
+  text-align: center;
 
   &::placeholder {
-    color: #bbb;
+    color: #999;
+    text-align: center;
   }
-`;
 
-const OtpInput = styled(Input)`
-  text-align: center;
-  font-size: 2rem;
-  width: 40px;
-  padding: 0;
-  margin-bottom: 0;
+  &:focus {
+    outline: none;
+    border-color: #ff6600;
+    background: #fff;
+  }
 `;
 
 const Button = styled.button`
   width: 100%;
-  padding: 16px;
-  border-radius: 4px;
+  padding: 14px;
+  border-radius: 8px;
   border: none;
   background: #ff6600;
   color: #fff;
-  font-size: 1.3rem;
+  font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
-  margin-top: 8px;
   transition: background 0.2s;
   font-family: 'Interstate', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 
   &:hover {
     background: #e65c00;
   }
+
   &:disabled {
     opacity: 0.7;
     cursor: not-allowed;
   }
 `;
 
-const ErrorMessage = styled.p`
-  color: #ff3b30;
+const OtpInputRow = styled.div`
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 16px;
+`;
+
+const OtpInput = styled.input`
+  width: 40px;
+  height: 48px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #fafafa;
+  color: #222;
+  font-size: 1.25rem;
+  font-weight: 700;
   text-align: center;
-  margin: 8px 0;
-  font-size: 1rem;
+  font-family: 'Interstate', sans-serif;
+
+  &:focus {
+    outline: none;
+    border-color: #ff6600;
+    background: #fff;
+  }
+`;
+
+const ErrorMessage = styled.div`
+  color: #ff3b30;
+  font-size: 0.9rem;
+  text-align: center;
+  margin-top: 8px;
   font-family: 'Interstate', sans-serif;
 `;
 
@@ -181,14 +265,6 @@ const SuccessMessage = styled.p`
   margin: 8px 0;
   font-size: 1rem;
   font-family: 'Interstate', sans-serif;
-`;
-
-const OtpInputRow = styled.div`
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 8px;
 `;
 
 interface PhoneVerificationProps {
@@ -203,8 +279,8 @@ export default function PhoneVerification({ phoneNumber: initialPhone, onVerific
   const [phoneNumber, setPhoneNumber] = useState(initialPhone || '');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const inputRefs = Array.from({ length: 6 }, () => React.createRef<HTMLInputElement>());
   const navigate = useNavigate();
 
@@ -212,19 +288,19 @@ export default function PhoneVerification({ phoneNumber: initialPhone, onVerific
     e.preventDefault();
     setError('');
     setSuccess('');
-    setLoading(true);
+    setIsLoading(true);
     try {
       if (!phoneNumber.match(/^\+?\d{10,15}$/)) {
         throw new Error(t('enterValidPhoneNumber'));
       }
       setTimeout(() => {
         setStep('otp');
-        setLoading(false);
+        setIsLoading(false);
         setSuccess(t('verificationCodeSent'));
       }, 800);
     } catch (err: any) {
       setError(err.message || t('sendCodeError'));
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -259,25 +335,31 @@ export default function PhoneVerification({ phoneNumber: initialPhone, onVerific
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleVerifyOtp = async () => {
     setError('');
-    setSuccess('');
-    setLoading(true);
-    const code = otp.join('');
+    setIsLoading(true);
+
     try {
-      if (code.length !== 6) {
-        throw new Error(t('enter6DigitCode'));
+      const otpValue = otp.join('');
+      
+      if (otpValue.length !== 6) {
+        throw new Error(t('invalidOtp'));
       }
+
+      // Verify OTP (mock verification for now)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setSuccess(true);
+      setError('');
+      
+      // Redirect to home page after successful verification
       setTimeout(() => {
-        setSuccess(t('phoneVerified'));
-        setLoading(false);
-        onVerificationComplete();
-        navigate('/setup-profile');
+        navigate('/home');
       }, 1000);
     } catch (err: any) {
-      setError(err.message || t('verifyPhoneError'));
-      setLoading(false);
+      setError(err.message || t('verificationError'));
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -285,28 +367,26 @@ export default function PhoneVerification({ phoneNumber: initialPhone, onVerific
     <>
       <GlobalStyle />
       <Container>
-        <LanguageSelector style={{ alignSelf: 'flex-end', marginRight: 24, marginBottom: 8 }} />
-        <TopBar>
-          <BackArrow onClick={onBack} aria-label={t('back')}>&#8592;</BackArrow>
-        </TopBar>
-        <Logo src={icon} alt="blip logo" />
-        <Tagline>300m, Real-Time Vibes.</Tagline>
-        <Heading>{t('verifyYourID')}</Heading>
-        <Explanation>{t('phoneVerificationExplanation')}</Explanation>
-        {step === 'phone' ? (
-          <Form onSubmit={handleSendCode}>
-            <Label htmlFor="phone">{t('phoneNumber')}</Label>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder={t('enterPhoneNumber')}
-              value={phoneNumber}
-              onChange={e => setPhoneNumber(e.target.value)}
-              autoFocus
-            />
-            <Button type="submit" disabled={loading}>{loading ? t('sending') : t('sendCode')}</Button>
-          </Form>
-        ) : (
+        <TopSpace />
+        <Logo src={icon} alt="Logo" />
+        <TextContainer>
+          <Title>Join a Community of Verified Users</Title>
+          <Subtitle>Verify your ID</Subtitle>
+          <Description>Protecting You from Bots, Fakes, and Scams. Phone Verification Required</Description>
+        </TextContainer>
+        <Form onSubmit={handleSendCode}>
+          <Label htmlFor="phone">{t('phoneNumber')}</Label>
+          <Input
+            id="phone"
+            type="tel"
+            placeholder={t('enterPhoneNumber')}
+            value={phoneNumber}
+            onChange={e => setPhoneNumber(e.target.value)}
+            autoFocus
+          />
+          <Button type="submit" disabled={isLoading}>{isLoading ? t('sending') : t('sendCode')}</Button>
+        </Form>
+        {step === 'otp' && (
           <Form onSubmit={handleVerifyOtp}>
             <OtpLabel>{t('otpVerification')}</OtpLabel>
             <OtpInstruction>{t('enterOtp')}</OtpInstruction>
@@ -328,7 +408,7 @@ export default function PhoneVerification({ phoneNumber: initialPhone, onVerific
                 />
               ))}
             </OtpInputRow>
-            <Button type="submit" disabled={loading}>{loading ? t('verifying') : t('verify')}</Button>
+            <Button type="submit" disabled={isLoading}>{isLoading ? t('verifying') : t('verify')}</Button>
           </Form>
         )}
         {error && <ErrorMessage>{error}</ErrorMessage>}
