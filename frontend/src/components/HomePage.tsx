@@ -289,53 +289,16 @@ const SectionTitle = styled.div`
 
 const GreenDot = styled.span`
   display: inline-block;
-  width: 10px;
-  height: 10px;
-  background: #00e676;
+  width: 12px;
+  height: 12px;
+  background: ${props => props.isOnline ? '#00e676' : '#ff3b30'};
   border-radius: 50%;
-  margin-left: 2px;
-  position: relative;
-  transition: transform 0.2s;
-  &:hover {
-    transform: scale(1.2);
-  }
-  &:hover::after {
-    content: 'online';
-    position: absolute;
-    top: -20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    white-space: nowrap;
-  }
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border-radius: 50%;
-    background: #00e676;
-    animation: pulse 1.5s infinite;
-  }
+  margin-left: 4px;
+  animation: pulse 1.5s infinite;
   @keyframes pulse {
-    0% {
-      transform: scale(1);
-      opacity: 1;
-    }
-    50% {
-      transform: scale(1.5);
-      opacity: 0.5;
-    }
-    100% {
-      transform: scale(1);
-      opacity: 1;
-    }
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
   }
 `;
 
@@ -682,7 +645,7 @@ const HomePage: React.FC = () => {
             <WelcomeSub>Find new friends now, in real-time</WelcomeSub>
             <SectionTitleRow>
               <SectionTitle>Live Activity Feed</SectionTitle>
-              <GreenDot />
+              <GreenDot isOnline={currentUser?.isOnline || false} />
             </SectionTitleRow>
           </GlassSection>
           <FilterRow>

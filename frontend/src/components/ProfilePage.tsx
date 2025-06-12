@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import verifiedBadge from '../verified.png';
 import icon from '../icon.png';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { db } from '../config/firebase';
 import { doc, updateDoc, arrayRemove } from 'firebase/firestore';
+import { subscribeToUserStatus } from '../services/presence';
 
 const ProfileBg = styled.div`
   min-height: 100vh;
@@ -47,9 +48,15 @@ const GreenDot = styled.span`
   display: inline-block;
   width: 12px;
   height: 12px;
-  background: #00e676;
+  background: ${props => props.isOnline ? '#00e676' : '#ff3b30'};
   border-radius: 50%;
   margin-left: 4px;
+  animation: pulse 1.5s infinite;
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+  }
 `;
 
 const NotificationBadge = styled.div`
@@ -280,35 +287,6 @@ const GreenDotBtn = styled.span`
   display: inline-block;
   margin-left: -8px;
   border: 2px solid #fff;
-`;
-
-const BioSection = styled.div`
-  width: 100%;
-  max-width: 340px;
-  min-height: 60px;
-  background: #fff;
-  border-radius: 20px;
-  border: 1.5px solid #e6eaf1;
-  box-shadow: 0 2px 8px rgba(30,40,80,0.06);
-  margin: 24px auto 0 auto;
-  padding: 16px 18px 14px 18px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-`;
-
-const BioTitle = styled.div`
-  font-weight: 700;
-  font-size: 1.08rem;
-  color: #222;
-  margin-bottom: 6px;
-`;
-
-const BioText = styled.div`
-  font-size: 1.01rem;
-  color: #444;
-  word-break: break-word;
-  line-height: 1.4;
 `;
 
 const SectionCard = styled.div`
@@ -593,6 +571,17 @@ const ProfilePage: React.FC = () => {
     { id: '2', title: '☕ Coffee Meetup @ Blue Bottle', date: '2024-06-09, 10:30' },
     { id: '3', title: '🎬 Movie Night: Inception', date: '2024-06-08, 21:00' },
   ]);
+  const [isOnline, setIsOnline] = useState(false);
+
+  useEffect(() => {
+    if (userId) {
+      const unsubscribe = subscribeToUserStatus(userId, (status) => {
+        setIsOnline(status);
+      });
+      return () => unsubscribe();
+    }
+  }, [userId]);
+
   const handleRemoveActivity = async (activityId: string) => {
     setMyActivities(myActivities.filter(a => a.id !== activityId));
     // Backend: remove from Firestore (replace 'activities' with your collection)
@@ -619,8 +608,8 @@ const ProfilePage: React.FC = () => {
       <Header>
         <BackArrow onClick={() => navigate(-1)}>&larr;</BackArrow>
         <NameRow>
-          <span style={{fontWeight:700, fontSize:'1.18rem'}}>Luis</span>
-          <GreenDot />
+          <span style={{fontWeight:700, fontSize:'1.18rem'}}>{user.name}</span>
+          <GreenDot isOnline={isOnline} />
         </NameRow>
       </Header>
       <Card>
@@ -633,12 +622,10 @@ const ProfilePage: React.FC = () => {
           <Dot />
         </Dots>
         <IconStack>
-          <AppleIconButton title="Add">+</AppleIconButton>
           <AppleIconButton title="Settings" style={{position:'relative'}} onClick={handleSettingsClick}>
             <span role="img" aria-label="settings">⚙️</span>
             <GearBadge>16</GearBadge>
           </AppleIconButton>
-          <AppleIconButton title="Bio">BIO</AppleIconButton>
           <AppleIconButton title="Grid">
             <span role="img" aria-label="grid">☰</span>
           </AppleIconButton>
@@ -662,12 +649,6 @@ const ProfilePage: React.FC = () => {
           <img src={icon} alt="blip" style={{width:32, height:32, borderRadius:8}} />
           Create new activity
         </CreateActivityBtn>
-        <BioSection>
-          <BioTitle>About me</BioTitle>
-          <BioText>
-            Passionate about tech, hiking, and cinema. Always up for a new adventure or a deep conversation. Let's connect and make something awesome happen! 🚀
-          </BioText>
-        </BioSection>
         <SectionCard>
           <SectionHeader>
             <SectionTitle>My Activities</SectionTitle>

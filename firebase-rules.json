@@ -1,0 +1,23 @@
+{
+  "rules": {
+    "status": {
+      "$uid": {
+        // Allow users to read any user's status
+        ".read": "auth != null",
+        // Only allow users to write their own status
+        ".write": "auth != null && auth.uid === $uid",
+        // Validate the data structure
+        ".validate": "newData.hasChildren(['state', 'lastChanged'])",
+        "state": {
+          ".validate": "newData.isString() && (newData.val() === 'online' || newData.val() === 'offline')"
+        },
+        "lastChanged": {
+          ".validate": "newData.isNumber()"
+        }
+      }
+    },
+    // Deny access to all other data by default
+    ".read": false,
+    ".write": false
+  }
+} 

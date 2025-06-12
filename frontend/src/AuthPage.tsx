@@ -444,7 +444,7 @@ export default function AuthPage() {
               ))}
             </LanguageSelect>
           </LanguageContainer>
-          <Footer>Mediaair Brands Limited</Footer>
+          <Footer>Mediaair Brands Limited CRN. 13799465</Footer>
         </Content>
         <NavigationArrows 
           onPrev={() => {}}
