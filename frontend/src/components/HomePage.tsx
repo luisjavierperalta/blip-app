@@ -15,6 +15,8 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import SearchPage from './SearchPage';
+import { FiBell } from 'react-icons/fi';
+import NotificationCenter from './NotificationCenter';
 
 export const users = [
   {
@@ -208,7 +210,7 @@ const WelcomeTitle = styled.div`
 
 const WelcomeSub = styled.div`
   color: #888;
-  font-size: 1.08rem;
+  font-size: 1.15rem;
   margin-bottom: 18px;
 `;
 
@@ -493,7 +495,7 @@ const RealisticActivityIcon = ({ activity }: { activity: string }) => {
   return <img src={randomIcon} alt={activity} style={{ width: 24, height: 24 }} />;
 };
 
-export default function HomePage() {
+const HomePage: React.FC = () => {
   const [filter, setFilter] = useState('300m');
   const [hubOpen, setHubOpen] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
@@ -501,6 +503,8 @@ export default function HomePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser } = useAuth();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Fetch nearby users from Firebase
   useEffect(() => {
@@ -523,6 +527,16 @@ export default function HomePage() {
     return () => unsubscribe();
   }, [currentUser]);
 
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const unsubscribe = subscribeToNotifications(currentUser.uid, (notifications) => {
+      setUnreadCount(notifications.filter(n => !n.read).length);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
+
   return (
     <>
       <GlobalStyle />
@@ -531,7 +545,10 @@ export default function HomePage() {
           <PlainHeader>
             <HeaderLogo src={icon} alt="blip" />
             <HeaderRight>
-              <BellIcon><ModernBell /></BellIcon>
+              <BellIconWrapper onClick={() => setShowNotifications(true)}>
+                <FiBell size={24} />
+                {unreadCount > 0 && <NotificationBadge>{unreadCount}</NotificationBadge>}
+              </BellIconWrapper>
               <HeaderProfilePic src={currentUser?.photoURL || "/IMG_20250315_193341(1)(1).png"} alt="profile" />
             </HeaderRight>
           </PlainHeader>
@@ -593,6 +610,42 @@ export default function HomePage() {
         </GlassMain>
       </GlassContainer>
       {showSearch && <SearchPage onClose={() => setShowSearch(false)} />}
+      {showNotifications && (
+        <NotificationCenter onClose={() => setShowNotifications(false)} />
+      )}
     </>
   );
-} 
+};
+
+const BellIconWrapper = styled.div`
+  position: relative;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+`;
+
+const NotificationBadge = styled.div`
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #FF3B30;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+`;
+
+export default HomePage; 
