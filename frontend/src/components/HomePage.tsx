@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled, { createGlobalStyle } from 'styled-components';
 import icon from '../icon.png';
 import verifiedBadge from '../verified.png';
@@ -10,6 +10,49 @@ import clapperboardIcon from '../activity-icons/clapperboard.png';
 import walkingIcon from '../activity-icons/walking.png';
 import runningIcon from '../activity-icons/running.png';
 import { useNavigate, useLocation } from 'react-router-dom';
+import MessageButton from './MessageButton';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../config/firebase';
+import { useAuth } from '../contexts/AuthContext';
+
+export const users = [
+  {
+    uid: '1',
+    name: 'John Doe',
+    age: 28,
+    img: 'https://randomuser.me/api/portraits/men/1.jpg',
+    activity: 'Working',
+    distance: '2.5 km away',
+    verified: true
+  },
+  {
+    uid: '2',
+    name: 'Jane Smith',
+    age: 25,
+    img: 'https://randomuser.me/api/portraits/women/2.jpg',
+    activity: 'Reading',
+    distance: '1.8 km away',
+    verified: true
+  },
+  {
+    uid: '3',
+    name: 'Mike Johnson',
+    age: 32,
+    img: 'https://randomuser.me/api/portraits/men/3.jpg',
+    activity: 'Running',
+    distance: '3.2 km away',
+    verified: false
+  },
+  {
+    uid: '4',
+    name: 'Sarah Williams',
+    age: 27,
+    img: 'https://randomuser.me/api/portraits/women/4.jpg',
+    activity: 'Listening to Music',
+    distance: '4.1 km away',
+    verified: true
+  }
+];
 
 const GlobalStyle = createGlobalStyle`
   @font-face {
@@ -38,33 +81,6 @@ const GlobalStyle = createGlobalStyle`
     background: #e6eaf1;
   }
 `;
-
-const users = [
-  {
-    name: 'Charlotte Huang', age: 27, distance: '100m', activity: 'Running', img: 'https://randomuser.me/api/portraits/women/44.jpg',
-    verified: true, status: 'video',
-  },
-  {
-    name: 'Elija Williams', age: 30, distance: '250m', activity: 'Music Studio', img: 'https://randomuser.me/api/portraits/men/45.jpg',
-    verified: true, status: 'phone',
-  },
-  {
-    name: 'Ryan Carter', age: 25, distance: '200m', activity: 'Cycling', img: 'https://randomuser.me/api/portraits/men/46.jpg',
-    verified: true, status: 'video',
-  },
-  {
-    name: 'Samantha Lee', age: 29, distance: '300m', activity: 'Reading', img: 'https://randomuser.me/api/portraits/women/47.jpg',
-    verified: true, status: 'phone',
-  },
-  {
-    name: 'John Doe', age: 28, distance: '150m', activity: 'Gaming', img: 'https://randomuser.me/api/portraits/men/48.jpg',
-    verified: true, status: 'video',
-  },
-  {
-    name: 'Jane Smith', age: 31, distance: '400m', activity: 'Cooking', img: 'https://randomuser.me/api/portraits/women/49.jpg',
-    verified: true, status: 'phone',
-  },
-];
 
 const GlassContainer = styled.div`
   min-height: 100vh;
@@ -368,11 +384,28 @@ const CardActivity = styled.div`
   font-weight: 600;
 `;
 
+const CardActions = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  width: 100%;
+`;
+
 const HomeIcon = ({active}: {active?: boolean}) => (
   <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11.5L12 4l9 7.5"/><path d="M4 10v8a2 2 0 0 0 2 2h3m6 0h3a2 2 0 0 0 2-2v-8"/><path d="M9 22V12h6v10"/></svg>
 );
 const MapIcon = ({active}: {active?: boolean}) => (
-  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/></svg>
+  <img 
+    src="/map.png" 
+    alt="map" 
+    style={{ 
+      width: '26px', 
+      height: '26px',
+      opacity: active ? 1 : 0.7,
+      transition: 'opacity 0.2s ease',
+      filter: active ? 'hue-rotate(0deg) saturate(2)' : 'hue-rotate(0deg) saturate(1)'
+    }} 
+  />
 );
 const SearchIcon = ({active}: {active?: boolean}) => (
   <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -462,8 +495,32 @@ const RealisticActivityIcon = ({ activity }: { activity: string }) => {
 export default function HomePage() {
   const [filter, setFilter] = useState('300m');
   const [hubOpen, setHubOpen] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
   const navigate = useNavigate();
   const location = useLocation();
+  const { currentUser } = useAuth();
+
+  // Fetch nearby users from Firebase
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const usersRef = collection(db, 'users');
+    const q = query(
+      usersRef,
+      where('uid', '!=', currentUser.uid)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const userData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setUsers(userData);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
+
   return (
     <>
       <GlobalStyle />
@@ -473,11 +530,11 @@ export default function HomePage() {
             <HeaderLogo src={icon} alt="blip" />
             <HeaderRight>
               <BellIcon><ModernBell /></BellIcon>
-              <HeaderProfilePic src="/IMG_20250315_193341(1)(1).png" alt="profile" />
+              <HeaderProfilePic src={currentUser?.photoURL || "/IMG_20250315_193341(1)(1).png"} alt="profile" />
             </HeaderRight>
           </PlainHeader>
           <GlassSection style={{marginTop: 18}}>
-            <WelcomeTitle>Welcome, Luis Javier Peralta</WelcomeTitle>
+            <WelcomeTitle>Welcome, {currentUser?.displayName || 'User'}</WelcomeTitle>
             <WelcomeSub>Find new friends now, in real-time</WelcomeSub>
             <SectionTitleRow>
               <SectionTitle>Live Activity Feed</SectionTitle>
@@ -489,25 +546,48 @@ export default function HomePage() {
             <FilterBtn active={filter==='5km'} onClick={()=>setFilter('5km')}>Within 5km</FilterBtn>
           </FilterRow>
           <CardGrid>
-            {users.map((u, i) => (
-              <UserCard key={i}>
-                <CardPic src={u.img} alt={u.name} />
-                <CardBadge><img src={verifiedBadge} alt="verified" style={{width:28,height:28}} /></CardBadge>
-                <CardStatus><RealisticActivityIcon activity={u.activity} /></CardStatus>
-                <CardName>{u.name}, {u.age}</CardName>
-                <CardMeta>{u.distance}</CardMeta>
-                <CardActivity>Activity: {u.activity}</CardActivity>
+            {users.map((user) => (
+              <UserCard key={user.uid}>
+                <CardPic src={user.photoURL || 'https://via.placeholder.com/150'} alt={user.displayName} />
+                {user.verified && (
+                  <CardBadge>
+                    <img src={verifiedBadge} alt="verified" style={{width:28,height:28}} />
+                  </CardBadge>
+                )}
+                <CardStatus>
+                  <RealisticActivityIcon activity={user.activity || 'No activity'} />
+                </CardStatus>
+                <CardName>{user.displayName}, {user.age}</CardName>
+                <CardMeta>{user.distance || 'Unknown distance'}</CardMeta>
+                <CardActivity>Activity: {user.activity || 'No activity'}</CardActivity>
+                <CardActions>
+                  <MessageButton 
+                    targetUserId={user.uid} 
+                    targetUserName={user.displayName}
+                  />
+                </CardActions>
               </UserCard>
             ))}
           </CardGrid>
-          <NavMenuWrapper>
-            <BottomNav>
-              <NavBtn active={location.pathname === '/home'} onClick={() => navigate('/home')}><HomeIcon active={location.pathname === '/home'} /><NavLabel>Home</NavLabel></NavBtn>
-              <NavBtn active={location.pathname === '/map'} onClick={() => navigate('/map')}><MapIcon active={location.pathname === '/map'} /><NavLabel>Map</NavLabel></NavBtn>
-              <NavBtn><SearchIcon /><NavLabel>Search</NavLabel></NavBtn>
-              <NavBtn><MessageIcon /><NavLabel>Messages</NavLabel></NavBtn>
-            </BottomNav>
-          </NavMenuWrapper>
+          
+          <BottomNav>
+            <NavBtn active={location.pathname === '/home'} onClick={() => navigate('/home')}>
+              <HomeIcon active={location.pathname === '/home'} />
+              <NavLabel>Home</NavLabel>
+            </NavBtn>
+            <NavBtn active={location.pathname === '/map'} onClick={() => navigate('/map')}>
+              <MapIcon active={location.pathname === '/map'} />
+              <NavLabel>Map</NavLabel>
+            </NavBtn>
+            <NavBtn>
+              <SearchIcon />
+              <NavLabel>Search</NavLabel>
+            </NavBtn>
+            <NavBtn active={location.pathname === '/messages'} onClick={() => navigate('/messages')}>
+              <MessageIcon active={location.pathname === '/messages'} />
+              <NavLabel>Messages</NavLabel>
+            </NavBtn>
+          </BottomNav>
         </GlassMain>
       </GlassContainer>
     </>

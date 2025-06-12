@@ -4,6 +4,7 @@ import { db, auth, storage } from '../config/firebase';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, doc, getDoc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { users as mockUsers } from './HomePage';
+import { useNavigate } from 'react-router-dom';
 
 const GlobalStyle = createGlobalStyle`
   @font-face {
@@ -242,6 +243,7 @@ export default function MessagesPage({ chatUser, onClose }: { chatUser?: any, on
   const [userSearch, setUserSearch] = useState('');
   const [filteredConvos, setFilteredConvos] = useState<any[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<any[]>(mockUsers);
+  const navigate = useNavigate();
 
   // Fetch conversations
   useEffect(() => {
@@ -359,7 +361,7 @@ export default function MessagesPage({ chatUser, onClose }: { chatUser?: any, on
             <span style={{ cursor: 'pointer' }} onClick={() => setSelected(null)}>&larr; Back</span>
           ) : (
             <>
-              Messages
+              <span style={{ cursor: 'pointer' }} onClick={() => navigate('/home')}>&larr; Back to Home</span>
               <NewMessageBtn onClick={()=>setShowNewMsg(true)}>New Message</NewMessageBtn>
               {onClose && <span style={{marginLeft:'auto',cursor:'pointer',color:'#007aff',fontWeight:700}} onClick={onClose}>Close</span>}
             </>

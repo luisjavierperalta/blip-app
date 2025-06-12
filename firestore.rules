@@ -1,37 +1,67 @@
-   rules_version = '2';
-   service cloud.firestore {
-     match /databases/{database}/documents {
-       // Helper functions
-       function isAuthenticated() {
-         return request.auth != null;
-       }
-       
-       function isOwner(userId) {
-         return isAuthenticated() && request.auth.uid == userId;
-       }
-       
-       function isVerified() {
-         return isAuthenticated() && 
-           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.verified == true;
-       }
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isVerified() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.verified == true;
+    }
 
-       // Users collection
-       match /users/{userId} {
-         allow read: if isAuthenticated();
-         allow create: if isAuthenticated() && request.auth.uid == userId;
-         allow update: if isOwner(userId);
-         allow delete: if isOwner(userId);
-       }
+    // Helper function to check if user is developer
+    function isDeveloper() {
+      return request.auth != null && request.auth.token.email == 'luisjperalta@aol.com';
+    }
 
-       // Matches collection
-       match /matches/{matchId} {
-         allow read: if isAuthenticated() && 
-           (request.auth.uid in resource.data.users);
-         allow create: if isVerified();
-         allow update: if isAuthenticated() && 
-           (request.auth.uid in resource.data.users);
-         allow delete: if isAuthenticated() && 
-           (request.auth.uid in resource.data.users);
-       }
-     }
-   }
+    // Helper function to check if user is participant in chat
+    function isParticipant(chatId) {
+      return request.auth != null && 
+        exists(/databases/$(database)/documents/chats/$(chatId)) &&
+        get(/databases/$(database)/documents/chats/$(chatId)).data.participants.hasAny([request.auth.uid, 'developer']);
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    // Matches collection
+    match /matches/{matchId} {
+      allow read: if isAuthenticated() && 
+        (request.auth.uid in resource.data.users);
+      allow create: if isVerified();
+      allow update: if isAuthenticated() && 
+        (request.auth.uid in resource.data.users);
+      allow delete: if isAuthenticated() && 
+        (request.auth.uid in resource.data.users);
+    }
+
+    // Chats collection rules
+    match /chats/{chatId} {
+      allow read: if request.auth != null && 
+        (resource.data.participants.hasAny([request.auth.uid]) || isDeveloper());
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && 
+        (resource.data.participants.hasAny([request.auth.uid]) || isDeveloper());
+
+      // Messages subcollection rules
+      match /messages/{messageId} {
+        allow read: if isParticipant(chatId);
+        allow create: if isParticipant(chatId);
+        allow update: if isParticipant(chatId) && 
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seen']));
+        allow delete: if isParticipant(chatId);
+      }
+    }
+  }
+}
