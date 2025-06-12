@@ -57,6 +57,63 @@ export const users = [
   }
 ];
 
+const mockusers = [
+  {
+    uid: '1',
+    displayName: 'Charlotte Huang',
+    age: 27,
+    photoURL: 'https://randomuser.me/api/portraits/women/44.jpg',
+    activity: 'Running',
+    distance: '100m',
+    verified: true
+  },
+  {
+    uid: '2',
+    displayName: 'Elija Williams',
+    age: 30,
+    photoURL: 'https://randomuser.me/api/portraits/men/45.jpg',
+    activity: 'Music Studio',
+    distance: '250m',
+    verified: true
+  },
+  {
+    uid: '3',
+    displayName: 'Ryan Carter',
+    age: 25,
+    photoURL: 'https://randomuser.me/api/portraits/men/46.jpg',
+    activity: 'Cycling',
+    distance: '200m',
+    verified: false
+  },
+  {
+    uid: '4',
+    displayName: 'Samantha Lee',
+    age: 29,
+    photoURL: 'https://randomuser.me/api/portraits/women/47.jpg',
+    activity: 'Reading',
+    distance: '300m',
+    verified: true
+  },
+  {
+    uid: '5',
+    displayName: 'Lucas Martin',
+    age: 31,
+    photoURL: 'https://randomuser.me/api/portraits/men/48.jpg',
+    activity: 'Gaming',
+    distance: '400m',
+    verified: false
+  },
+  {
+    uid: '6',
+    displayName: 'Emily Turner',
+    age: 26,
+    photoURL: 'https://randomuser.me/api/portraits/women/49.jpg',
+    activity: 'Cooking',
+    distance: '150m',
+    verified: true
+  }
+];
+
 const GlobalStyle = createGlobalStyle`
   @font-face {
     font-family: 'Interstate';
@@ -302,96 +359,107 @@ const FilterBtn = styled.button<{active?: boolean}>`
   backdrop-filter: blur(8px);
 `;
 
-const CardGrid = styled.div`
+const AppleGrid = styled.div`
   width: 100%;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px;
   margin-bottom: 8px;
   overflow-y: auto;
-  max-height: calc(100vh - 200px); /* Adjust based on your layout */
+  max-height: calc(100vh - 200px);
 `;
 
-const UserCard = styled.div`
-  background: rgba(255,255,255,0.65);
+const AppleUserCell = styled.div`
+  position: relative;
+  width: 100%;
+  aspect-ratio: 0.8/1;
+  min-height: 260px;
   border-radius: 22px;
+  overflow: hidden;
   box-shadow: 0 4px 16px rgba(30,40,80,0.10);
-  padding: 10px 10px 14px 10px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  position: relative;
-  transition: box-shadow 0.2s;
-  border: 1.2px solid rgba(255,255,255,0.25);
-  backdrop-filter: blur(10px);
-  &:hover {
-    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-  }
-`;
-
-const CardPic = styled.img`
-  width: 100%;
-  aspect-ratio: 1/1;
-  border-radius: 16px;
-  object-fit: cover;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-`;
-
-const CardBadge = styled.div`
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  background: transparent;
-  width: 32px;
-  height: 32px;
-  display: flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 50%;
+  justify-content: flex-end;
+  background: #fff;
+`;
+
+const AppleProfilePic = styled.img`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 22px;
+  z-index: 1;
+`;
+
+const AppleBadgeStack = styled.div`
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   z-index: 2;
 `;
 
-const CardStatus = styled.div`
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  background: #fff;
-  color: #ff6600;
-  font-size: 1.15rem;
-  border-radius: 50%;
+const AppleVerifiedBadge = styled.img`
   width: 28px;
   height: 28px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+`;
+
+const AppleActivityIcon = styled.div`
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(255,102,0,0.10);
-  margin-top: 40px;
+  font-size: 18px;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 `;
 
-const CardName = styled.div`
-  font-size: 1.08rem;
-  font-weight: 700;
-  color: #222;
-  margin-top: 10px;
-`;
-
-const CardMeta = styled.div`
-  font-size: 0.97rem;
-  color: #888;
-  margin-bottom: 2px;
-`;
-
-const CardActivity = styled.div`
-  font-size: 0.97rem;
-  color: #00b894;
-  font-weight: 600;
-`;
-
-const CardActions = styled.div`
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
+const AppleInfo = styled.div`
+  position: absolute;
+  left: 0;
+  bottom: 0;
   width: 100%;
+  padding: 14px 12px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  z-index: 2;
+  background: linear-gradient(0deg, rgba(0,0,0,0.55) 90%, rgba(0,0,0,0.0) 100%);
+`;
+
+const AppleNameAge = styled.div`
+  font-weight: 600;
+  font-size: 1.08rem;
+  color: #fff;
+  margin-bottom: 2px;
+  font-family: 'Inter', 'Arial', sans-serif;
+`;
+
+const AppleDistance = styled.div`
+  color: #eee;
+  font-size: 0.97rem;
+  margin-bottom: 2px;
+  font-family: 'Inter', 'Arial', sans-serif;
+`;
+
+const AppleActivity = styled.div`
+  color: #1ecb83;
+  font-size: 1.01rem;
+  font-weight: 500;
+  font-family: 'Inter', 'Arial', sans-serif;
 `;
 
 const HomeIcon = ({active}: {active?: boolean}) => (
@@ -609,30 +677,24 @@ const HomePage: React.FC = () => {
             <FilterBtn active={filter==='25km'} onClick={()=>setFilter('25km')}>Within 25km</FilterBtn>
             <FilterBtn active={filter==='1000km'} onClick={()=>setFilter('1000km')}>EU-wide (1000km)</FilterBtn>
           </FilterRow>
-          <CardGrid>
-            {filteredUsers.map((user) => (
-              <UserCard key={user.uid}>
-                <CardPic src={user.photoURL || 'https://via.placeholder.com/150'} alt={user.displayName} />
-                {user.verified && (
-                  <CardBadge>
-                    <img src={verifiedBadge} alt="verified" style={{width:28,height:28}} />
-                  </CardBadge>
-                )}
-                <CardStatus>
-                  <RealisticActivityIcon activity={user.activity || 'No activity'} />
-                </CardStatus>
-                <CardName>{user.displayName}, {user.age}</CardName>
-                <CardMeta>{user.distance || 'Unknown distance'}</CardMeta>
-                <CardActivity>Activity: {user.activity || 'No activity'}</CardActivity>
-                <CardActions>
-                  <MessageButton 
-                    targetUserId={user.uid} 
-                    targetUserName={user.displayName}
-                  />
-                </CardActions>
-              </UserCard>
+          <AppleGrid>
+            {mockusers.map((user) => (
+              <AppleUserCell key={user.uid}>
+                <AppleBadgeStack>
+                  {user.verified && <AppleVerifiedBadge src={verifiedBadge} alt="verified" />}
+                  <AppleActivityIcon>
+                    {user.activity === 'Running' ? '🏃' : user.activity === 'Music Studio' ? '🎵' : user.activity === 'Cycling' ? '🚴' : user.activity === 'Reading' ? '📚' : '🎯'}
+                  </AppleActivityIcon>
+                </AppleBadgeStack>
+                <AppleProfilePic src={user.photoURL || 'https://via.placeholder.com/150'} alt={user.displayName} />
+                <AppleInfo>
+                  <AppleNameAge>{user.displayName}, {user.age}</AppleNameAge>
+                  <AppleDistance>{user.distance || 'Unknown distance'}</AppleDistance>
+                  <AppleActivity>Activity: {user.activity || 'No activity'}</AppleActivity>
+                </AppleInfo>
+              </AppleUserCell>
             ))}
-          </CardGrid>
+          </AppleGrid>
           
           <BottomNav>
             <NavBtn active={location.pathname === '/home'} onClick={() => navigate('/home')}>
