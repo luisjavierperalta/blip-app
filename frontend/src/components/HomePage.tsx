@@ -406,24 +406,19 @@ const AppleBadgeStack = styled.div`
 `;
 
 const AppleVerifiedBadge = styled.img`
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: #fff;
-  border: 2px solid #fff;
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 `;
 
 const AppleActivityIcon = styled.div`
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #fff;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  border: 2px solid #fff;
+  font-size: 22px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 `;
 
@@ -661,11 +656,11 @@ const HomePage: React.FC = () => {
                 <FiBell size={24} />
                 {unreadCount > 0 && <NotificationBadge>{unreadCount}</NotificationBadge>}
               </BellIconWrapper>
-              <HeaderProfilePic src={currentUser?.photoURL || "/IMG_20250315_193341(1)(1).png"} alt="profile" />
+              <HeaderProfilePic src={currentUser?.photoURL || "/IMG_20250315_193341(1)(1).png"} alt="profile" onClick={() => navigate('/profile')} />
             </HeaderRight>
           </PlainHeader>
           <GlassSection style={{marginTop: 18}}>
-            <WelcomeTitle>Welcome, {currentUser?.displayName || 'User'}</WelcomeTitle>
+            <WelcomeTitle>Welcome, luisjavierperalta</WelcomeTitle>
             <WelcomeSub>Find new friends now, in real-time</WelcomeSub>
             <SectionTitleRow>
               <SectionTitle>Live Activity Feed</SectionTitle>
@@ -705,8 +700,8 @@ const HomePage: React.FC = () => {
               <MapIcon active={location.pathname === '/map'} />
               <NavLabel>Map</NavLabel>
             </NavBtn>
-            <NavBtn onClick={() => setShowSearch(true)}>
-              <SearchIcon />
+            <NavBtn active={location.pathname === '/search'} onClick={() => navigate('/search')}>
+              <SearchIcon active={location.pathname === '/search'} />
               <NavLabel>Search</NavLabel>
             </NavBtn>
             <NavBtn active={location.pathname === '/messages'} onClick={() => navigate('/messages')}>

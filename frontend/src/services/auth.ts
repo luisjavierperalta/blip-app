@@ -25,7 +25,7 @@ export const verifyOtp = async (phoneNumber: string, verificationCode: string) =
 };
 
 // Sign up with email and password
-export const signUp = async (email: string, password: string, username: string, phoneNumber?: string) => {
+export const signUp = async (email: string, password: string, username: string, legalFullName: string, phoneNumber?: string) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
@@ -35,6 +35,7 @@ export const signUp = async (email: string, password: string, username: string, 
       uid: user.uid,
       email,
       username,
+      legalFullName,
       phoneNumber
     });
 

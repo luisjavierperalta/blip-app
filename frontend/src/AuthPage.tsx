@@ -304,7 +304,7 @@ export default function AuthPage() {
 
     try {
       // Validate inputs
-      if (!email || !password || !username) {
+      if (!email || !password || !username || !legalFullName) {
         throw new Error('Please fill in all required fields');
       }
 
@@ -313,7 +313,7 @@ export default function AuthPage() {
       }
 
       // Create user account
-      await signUp(email, password, username);
+      await signUp(email, password, username, legalFullName);
       
       // Show verification page
       setShowVerification(true);
@@ -396,6 +396,13 @@ export default function AuthPage() {
           <Form onSubmit={handleSignUp}>
             <Input
               type="text"
+              placeholder="Full Legal Name"
+              value={legalFullName}
+              onChange={(e) => setLegalFullName(e.target.value)}
+              required
+            />
+            <Input
+              type="text"
               placeholder={t('username')}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
@@ -423,7 +430,7 @@ export default function AuthPage() {
           {error && <ErrorMessage>{error}</ErrorMessage>}
 
           <ButtonContainer>
-            <Button type="button" onClick={() => navigate('/login-saved')}>
+            <Button type="button" onClick={() => navigate('/login')}>
               {t('signin')}
             </Button>
           </ButtonContainer>
