@@ -65,30 +65,30 @@ const TextContainer = styled.div`
 
 const Title = styled.h1`
   color: #ff6600;
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  margin: 0 0 16px 0;
+  margin: 0 0 20px 0;
   font-family: 'Interstate', sans-serif;
   line-height: 1.4;
 `;
 
 const Subtitle = styled.h2`
   color: #222;
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  margin: 0 0 16px 0;
+  margin: 0 0 20px 0;
   font-family: 'Interstate', sans-serif;
   line-height: 1.4;
 `;
 
 const Description = styled.p`
   color: #666;
-  font-size: 1rem;
+  font-size: 1.18rem;
   font-weight: 300;
   margin: 0;
   line-height: 1.5;
   font-family: 'Interstate', sans-serif;
-  max-width: 320px;
+  max-width: 340px;
 `;
 
 const TopBar = styled.div`
@@ -111,7 +111,7 @@ const BackArrow = styled.button`
 
 const Tagline = styled.div`
   color: #ff6600;
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   text-align: center;
   margin-top: 8px;
   margin-bottom: 24px;
@@ -120,26 +120,26 @@ const Tagline = styled.div`
 `;
 
 const Heading = styled.h1`
-  font-size: 2rem;
+  font-size: 2.3rem;
   font-weight: 700;
   color: #222;
   text-align: center;
-  margin: 24px 0 12px 0;
+  margin: 28px 0 16px 0;
   font-family: 'Interstate', sans-serif;
 `;
 
 const Explanation = styled.p`
   color: #222;
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   text-align: center;
-  margin: 0 0 24px 0;
+  margin: 0 0 28px 0;
   font-weight: 400;
   font-family: 'Interstate', sans-serif;
 `;
 
 const OtpLabel = styled.div`
   color: #0057ff;
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   font-weight: 700;
   margin-bottom: 4px;
   text-align: left;
@@ -148,8 +148,8 @@ const OtpLabel = styled.div`
 
 const OtpInstruction = styled.div`
   color: #0057ff;
-  font-size: 1rem;
-  margin-bottom: 16px;
+  font-size: 1.18rem;
+  margin-bottom: 18px;
   text-align: left;
   font-family: 'Interstate', sans-serif;
 `;
@@ -166,7 +166,7 @@ const Form = styled.form`
 
 const Label = styled.label`
   color: #222;
-  font-size: 0.9rem;
+  font-size: 1.08rem;
   font-weight: 700;
   margin-bottom: 4px;
   width: 100%;
@@ -176,12 +176,12 @@ const Label = styled.label`
 
 const Input = styled.input`
   width: 100%;
-  padding: 12px;
+  padding: 14px;
   border-radius: 8px;
   border: 1px solid #ddd;
   background: #fafafa;
   color: #222;
-  font-size: 1rem;
+  font-size: 1.18rem;
   font-family: 'Interstate', sans-serif;
   font-weight: 300;
   box-sizing: border-box;
@@ -190,6 +190,7 @@ const Input = styled.input`
   &::placeholder {
     color: #999;
     text-align: center;
+    font-size: 1.18rem;
   }
 
   &:focus {
@@ -201,12 +202,12 @@ const Input = styled.input`
 
 const Button = styled.button`
   width: 100%;
-  padding: 14px;
+  padding: 18px;
   border-radius: 8px;
   border: none;
   background: #ff6600;
   color: #fff;
-  font-size: 1rem;
+  font-size: 1.18rem;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.2s;
@@ -233,13 +234,13 @@ const OtpInputRow = styled.div`
 `;
 
 const OtpInput = styled.input`
-  width: 40px;
-  height: 48px;
+  width: 48px;
+  height: 56px;
   border-radius: 8px;
   border: 1px solid #ddd;
   background: #fafafa;
   color: #222;
-  font-size: 1.25rem;
+  font-size: 1.55rem;
   font-weight: 700;
   text-align: center;
   font-family: 'Interstate', sans-serif;
@@ -253,17 +254,17 @@ const OtpInput = styled.input`
 
 const ErrorMessage = styled.div`
   color: #ff3b30;
-  font-size: 0.9rem;
+  font-size: 1.08rem;
   text-align: center;
-  margin-top: 8px;
+  margin-top: 10px;
   font-family: 'Interstate', sans-serif;
 `;
 
 const SuccessMessage = styled.p`
   color: #34c759;
   text-align: center;
-  margin: 8px 0;
-  font-size: 1rem;
+  margin: 10px 0;
+  font-size: 1.18rem;
   font-family: 'Interstate', sans-serif;
 `;
 
