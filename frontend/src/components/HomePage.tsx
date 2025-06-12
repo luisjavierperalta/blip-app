@@ -553,7 +553,7 @@ const HomePage: React.FC = () => {
             </HeaderRight>
           </PlainHeader>
           <GlassSection style={{marginTop: 18}}>
-            <WelcomeTitle>Welcome, {currentUser?.displayName || 'luisjavierperalta'}</WelcomeTitle>
+            <WelcomeTitle>Welcome, {currentUser?.displayName || 'User'}</WelcomeTitle>
             <WelcomeSub>Find new friends now, in real-time</WelcomeSub>
             <SectionTitleRow>
               <SectionTitle>Live Activity Feed</SectionTitle>
