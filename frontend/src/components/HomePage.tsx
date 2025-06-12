@@ -14,6 +14,7 @@ import MessageButton from './MessageButton';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import SearchPage from './SearchPage';
 
 export const users = [
   {
@@ -496,6 +497,7 @@ export default function HomePage() {
   const [filter, setFilter] = useState('300m');
   const [hubOpen, setHubOpen] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
+  const [showSearch, setShowSearch] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser } = useAuth();
@@ -579,7 +581,7 @@ export default function HomePage() {
               <MapIcon active={location.pathname === '/map'} />
               <NavLabel>Map</NavLabel>
             </NavBtn>
-            <NavBtn>
+            <NavBtn onClick={() => setShowSearch(true)}>
               <SearchIcon />
               <NavLabel>Search</NavLabel>
             </NavBtn>
@@ -590,6 +592,7 @@ export default function HomePage() {
           </BottomNav>
         </GlassMain>
       </GlassContainer>
+      {showSearch && <SearchPage onClose={() => setShowSearch(false)} />}
     </>
   );
 } 

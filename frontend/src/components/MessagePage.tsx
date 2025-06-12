@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db, auth, storage } from '../config/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../contexts/AuthContext';
 import { FiSearch, FiPaperclip, FiSend, FiImage, FiVideo } from 'react-icons/fi';
+import { onUserProfileUpdate } from '../utils/userUtils';
 
 const Container = styled.div`
   min-height: 100vh;
@@ -157,6 +158,7 @@ const MessagePage = () => {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const { currentUser } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [users, setUsers] = useState<any[]>([]);
 
   // Check if user is developer
   const isDeveloper = currentUser?.email === 'luisjperalta@aol.com';
@@ -200,6 +202,47 @@ const MessagePage = () => {
 
     return () => unsubscribe();
   }, [selectedChat]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!currentUser) return;
+
+      try {
+        const usersRef = collection(db, 'users');
+        const q = query(
+          usersRef,
+          where('uid', '!=', currentUser.uid)
+        );
+
+        const querySnapshot = await getDocs(q);
+        const userData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+
+        // Update search terms for each user if they don't have them
+        const updatePromises = userData.map(async (user) => {
+          if (!user.searchTerms) {
+            return onUserProfileUpdate(user.uid, {
+              displayName: user.displayName,
+              username: user.username,
+              bio: user.bio,
+              interests: user.interests,
+              location: user.location
+            });
+          }
+          return Promise.resolve();
+        });
+
+        await Promise.all(updatePromises);
+        setUsers(userData);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    };
+
+    fetchUsers();
+  }, [currentUser]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
