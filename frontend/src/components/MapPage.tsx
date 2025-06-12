@@ -30,6 +30,50 @@ const UserActivity = styled.p`
   color: #666;
 `;
 
+const pulseKeyframes = `
+  0% { box-shadow: 0 0 0 0 rgba(255,107,0,0.4); }
+  70% { box-shadow: 0 0 0 30px rgba(255,107,0,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,107,0,0); }
+`;
+
+const FilterBar = styled.div`
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  gap: 10px;
+  background: rgba(255,255,255,0.85);
+  border-radius: 22px;
+  box-shadow: 0 2px 8px rgba(30,40,80,0.10);
+  padding: 8px 18px;
+`;
+
+const FilterBtn = styled.button<{active?: boolean}>`
+  background: ${p => p.active ? 'rgba(255,102,0,0.12)' : 'transparent'};
+  border: none;
+  color: ${p => p.active ? '#ff6600' : '#888'};
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 18px;
+  padding: 6px 18px;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+`;
+
+function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 const MapPage = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -38,6 +82,8 @@ const MapPage = () => {
   const [nearbyUsers, setNearbyUsers] = useState<any[]>([]);
   const { currentUser } = useAuth();
   const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const [filter, setFilter] = useState<'300m' | '25km' | '1000km'>('300m');
+  const [currentLocation, setCurrentLocation] = useState<{latitude: number, longitude: number} | null>(null);
 
   // Fetch nearby users from Firebase
   useEffect(() => {
@@ -89,8 +135,7 @@ const MapPage = () => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          
-          // Center map on user's location
+          setCurrentLocation({ latitude, longitude });
           map.current?.flyTo({
             center: [longitude, latitude],
             zoom: 15
@@ -102,6 +147,9 @@ const MapPage = () => {
           })
             .setLngLat([longitude, latitude])
             .addTo(map.current!);
+
+          // Draw pulse circle for selected radius
+          drawPulseCircle(map.current!, longitude, latitude, filter);
 
           // Update current user's location in Firebase
           if (currentUser) {
@@ -135,18 +183,27 @@ const MapPage = () => {
     };
   }, [currentUser]);
 
-  // Update markers when nearby users change
+  // Redraw pulse circle when filter or location changes
+  useEffect(() => {
+    if (!map.current || !currentLocation) return;
+    drawPulseCircle(map.current, currentLocation.longitude, currentLocation.latitude, filter);
+  }, [filter, currentLocation]);
+
+  // Filter users by distance
+  const filterRadius = filter === '300m' ? 300 : filter === '25km' ? 25000 : 1000000;
+  const filteredNearbyUsers = nearbyUsers.filter(user => {
+    if (!user.location || !currentLocation) return false;
+    const d = getDistanceFromLatLonInMeters(currentLocation.latitude, currentLocation.longitude, user.location.latitude, user.location.longitude);
+    return d <= filterRadius;
+  });
+
+  // Update markers when filtered users change
   useEffect(() => {
     if (!map.current) return;
-
-    // Remove existing markers
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
-
-    // Add new markers for nearby users
-    nearbyUsers.forEach(user => {
+    filteredNearbyUsers.forEach(user => {
       if (!user.location) return;
-
       const el = document.createElement('div');
       el.className = 'user-marker';
       el.style.width = '32px';
@@ -156,7 +213,6 @@ const MapPage = () => {
       el.style.borderRadius = '50%';
       el.style.border = '2px solid white';
       el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
-
       const popup = new mapboxgl.Popup({ offset: 25 })
         .setHTML(`
           <div class="popup-content">
@@ -169,18 +225,62 @@ const MapPage = () => {
             </div>
           </div>
         `);
-
       const marker = new mapboxgl.Marker(el)
         .setLngLat([user.location.longitude, user.location.latitude])
         .setPopup(popup)
         .addTo(map.current!);
-
       markersRef.current.push(marker);
     });
-  }, [nearbyUsers]);
+  }, [filteredNearbyUsers]);
+
+  // Draw pulse circle function
+  function drawPulseCircle(map, lng, lat, filter) {
+    // Remove existing circle if any
+    if (map.getSource('pulse-circle')) {
+      map.removeLayer('pulse-circle-layer');
+      map.removeSource('pulse-circle');
+    }
+    const radius = filter === '300m' ? 0.3 : filter === '25km' ? 25 : 1000; // in km
+    map.addSource('pulse-circle', {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [lng, lat]
+          }
+        }]
+      }
+    });
+    map.addLayer({
+      id: 'pulse-circle-layer',
+      type: 'circle',
+      source: 'pulse-circle',
+      paint: {
+        'circle-radius': {
+          stops: [
+            [0, 0],
+            [20, radius * 1000 / 0.075] // scale for zoom
+          ],
+          base: 2
+        },
+        'circle-color': '#FF6B00',
+        'circle-opacity': 0.18,
+        'circle-blur': 0.6
+      }
+    });
+  }
 
   return (
-    <div style={{ width: '100%', height: '100vh' }} ref={mapContainer}>
+    <div style={{ width: '100%', height: '100vh', position: 'relative' }}>
+      <FilterBar>
+        <FilterBtn active={filter==='300m'} onClick={()=>setFilter('300m')}>Within 300m</FilterBtn>
+        <FilterBtn active={filter==='25km'} onClick={()=>setFilter('25km')}>Within 25km</FilterBtn>
+        <FilterBtn active={filter==='1000km'} onClick={()=>setFilter('1000km')}>EU-wide (1000km)</FilterBtn>
+      </FilterBar>
+      <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
       {error && (
         <div style={{
           position: 'absolute',

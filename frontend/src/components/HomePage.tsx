@@ -447,7 +447,7 @@ const BottomNav = styled.div`
 
 const NavBtn = styled.button<{active?: boolean}>`
   background: ${p => p.active ? 'rgba(255,102,0,0.12)' : 'transparent'};
-  border: none;
+  border: 2px solid ${p => p.active ? '#ff6600' : 'transparent'};
   color: ${p => p.active ? '#ff6600' : '#888'};
   font-size: 1.7rem;
   display: flex;
@@ -457,10 +457,22 @@ const NavBtn = styled.button<{active?: boolean}>`
   position: relative;
   border-radius: 22px;
   padding: 6px 18px 2px 18px;
-  transition: background 0.18s, color 0.18s;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s, transform 0.18s, border 0.18s;
   font-weight: 700;
+  box-shadow: ${p => p.active ? '0 2px 8px rgba(255,102,0,0.10)' : 'none'};
+  &:hover {
+    background: rgba(255,102,0,0.13);
+    color: #ff6600;
+    border: 2px solid #ff6600;
+    box-shadow: 0 4px 16px rgba(255,102,0,0.10);
+    transform: scale(1.07);
+  }
   &:active {
     background: rgba(255,102,0,0.18);
+    color: #ff6600;
+    border: 2px solid #ff6600;
+    box-shadow: 0 6px 24px rgba(255,102,0,0.13);
+    transform: scale(0.97);
   }
 `;
 
@@ -468,6 +480,7 @@ const NavLabel = styled.div`
   font-size: 0.92rem;
   margin-top: 2px;
   font-weight: 700;
+  color: #111;
 `;
 
 const ModernActivityIcon = ({ activity }: { activity: string }) => {
@@ -496,7 +509,7 @@ const RealisticActivityIcon = ({ activity }: { activity: string }) => {
 };
 
 const HomePage: React.FC = () => {
-  const [filter, setFilter] = useState('300m');
+  const [filter, setFilter] = useState<'300m' | '25km' | '1000km'>('300m');
   const [hubOpen, setHubOpen] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [showSearch, setShowSearch] = useState(false);
@@ -505,6 +518,25 @@ const HomePage: React.FC = () => {
   const { currentUser } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [currentLat, setCurrentLat] = useState<number | null>(null);
+  const [currentLon, setCurrentLon] = useState<number | null>(null);
+
+  // Fetch current user's location
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCurrentLat(position.coords.latitude);
+          setCurrentLon(position.coords.longitude);
+        },
+        (error) => {
+          setCurrentLat(null);
+          setCurrentLon(null);
+        },
+        { enableHighAccuracy: true }
+      );
+    }
+  }, []);
 
   // Fetch nearby users from Firebase
   useEffect(() => {
@@ -537,6 +569,18 @@ const HomePage: React.FC = () => {
     return () => unsubscribe();
   }, [currentUser]);
 
+  // Define filter radius in meters
+  const filterRadius = filter === '300m' ? 300 : filter === '25km' ? 25000 : 1000000;
+
+  // Filter users by distance if location is available
+  const filteredUsers = users.filter((user: any) => {
+    if (!currentLat || !currentLon || !user.location) return true;
+    const userLat = user.location.latitude;
+    const userLon = user.location.longitude;
+    const distance = getDistanceFromLatLonInMeters(currentLat, currentLon, userLat, userLon);
+    return distance <= filterRadius;
+  });
+
   return (
     <>
       <GlobalStyle />
@@ -562,10 +606,11 @@ const HomePage: React.FC = () => {
           </GlassSection>
           <FilterRow>
             <FilterBtn active={filter==='300m'} onClick={()=>setFilter('300m')}>Within 300m</FilterBtn>
-            <FilterBtn active={filter==='5km'} onClick={()=>setFilter('5km')}>Within 5km</FilterBtn>
+            <FilterBtn active={filter==='25km'} onClick={()=>setFilter('25km')}>Within 25km</FilterBtn>
+            <FilterBtn active={filter==='1000km'} onClick={()=>setFilter('1000km')}>EU-wide (1000km)</FilterBtn>
           </FilterRow>
           <CardGrid>
-            {users.map((user) => (
+            {filteredUsers.map((user) => (
               <UserCard key={user.uid}>
                 <CardPic src={user.photoURL || 'https://via.placeholder.com/150'} alt={user.displayName} />
                 {user.verified && (
