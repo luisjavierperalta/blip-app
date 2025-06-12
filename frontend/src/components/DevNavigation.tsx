@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const NavContainer = styled.div`
   position: fixed;
@@ -32,24 +32,13 @@ const NavButton = styled.button`
   }
 `;
 
-const pageOrder = ['/', '/setup-profile', '/home'];
-
 export default function DevNavigation() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const currentPath = location.pathname;
-  const currentIndex = pageOrder.indexOf(currentPath);
-
-  // If not found, default to Auth page
-  const safeIndex = currentIndex === -1 ? 0 : currentIndex;
-  const prevPage = pageOrder[(safeIndex - 1 + pageOrder.length) % pageOrder.length];
-  const nextPage = pageOrder[(safeIndex + 1) % pageOrder.length];
-
   return (
     <NavContainer>
-      <NavButton onClick={() => navigate(prevPage)} title={`Go to ${prevPage === '/' ? 'Auth' : prevPage === '/setup-profile' ? 'Profile Setup' : 'Home'}`}>←</NavButton>
-      <NavButton onClick={() => navigate(nextPage)} title={`Go to ${nextPage === '/' ? 'Auth' : nextPage === '/setup-profile' ? 'Profile Setup' : 'Home'}`}>→</NavButton>
-      <NavButton onClick={() => navigate('/home')} title="Go to Home">H</NavButton>
+      <NavButton onClick={() => navigate('/')} title="Auth">A</NavButton>
+      <NavButton onClick={() => navigate('/login')} title="Login">B</NavButton>
+      <NavButton onClick={() => navigate('/home')} title="Home">H</NavButton>
     </NavContainer>
   );
 } 

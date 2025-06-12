@@ -9,6 +9,7 @@ import musicPlayerIcon from '../activity-icons/music-player.png';
 import clapperboardIcon from '../activity-icons/clapperboard.png';
 import walkingIcon from '../activity-icons/walking.png';
 import runningIcon from '../activity-icons/running.png';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const GlobalStyle = createGlobalStyle`
   @font-face {
@@ -461,6 +462,8 @@ const RealisticActivityIcon = ({ activity }: { activity: string }) => {
 export default function HomePage() {
   const [filter, setFilter] = useState('300m');
   const [hubOpen, setHubOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
   return (
     <>
       <GlobalStyle />
@@ -470,7 +473,7 @@ export default function HomePage() {
             <HeaderLogo src={icon} alt="blip" />
             <HeaderRight>
               <BellIcon><ModernBell /></BellIcon>
-              <HeaderProfilePic src="https://randomuser.me/api/portraits/men/32.jpg" alt="profile" />
+              <HeaderProfilePic src="/IMG_20250315_193341(1)(1).png" alt="profile" />
             </HeaderRight>
           </PlainHeader>
           <GlassSection style={{marginTop: 18}}>
@@ -499,8 +502,8 @@ export default function HomePage() {
           </CardGrid>
           <NavMenuWrapper>
             <BottomNav>
-              <NavBtn active><HomeIcon active /><NavLabel>Home</NavLabel></NavBtn>
-              <NavBtn><MapIcon /><NavLabel>Map</NavLabel></NavBtn>
+              <NavBtn active={location.pathname === '/home'} onClick={() => navigate('/home')}><HomeIcon active={location.pathname === '/home'} /><NavLabel>Home</NavLabel></NavBtn>
+              <NavBtn active={location.pathname === '/map'} onClick={() => navigate('/map')}><MapIcon active={location.pathname === '/map'} /><NavLabel>Map</NavLabel></NavBtn>
               <NavBtn><SearchIcon /><NavLabel>Search</NavLabel></NavBtn>
               <NavBtn><MessageIcon /><NavLabel>Messages</NavLabel></NavBtn>
             </BottomNav>

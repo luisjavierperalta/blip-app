@@ -8,6 +8,7 @@ import NavigationArrows from './components/NavigationArrows';
 import './i18n';
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from './components/LanguageSelector';
+import { useNavigate } from 'react-router-dom';
 
 const GlobalStyle = createGlobalStyle`
   @font-face {
@@ -288,6 +289,13 @@ export default function AuthPage() {
   const [showVerification, setShowVerification] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [language, setLanguage] = useState(i18n.language || 'en');
+  const [legalFullName, setLegalFullName] = useState('');
+  let navigate: (path: string) => void = () => {};
+  try {
+    navigate = useNavigate();
+  } catch {
+    navigate = (path: string) => { window.location.href = path; };
+  }
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -415,8 +423,8 @@ export default function AuthPage() {
           {error && <ErrorMessage>{error}</ErrorMessage>}
 
           <ButtonContainer>
-            <Button onClick={handleSignIn} disabled={loading}>
-              {loading ? t('signingIn') : t('signin')}
+            <Button type="button" onClick={() => navigate('/login-saved')}>
+              {t('signin')}
             </Button>
           </ButtonContainer>
           <LanguageContainer>
