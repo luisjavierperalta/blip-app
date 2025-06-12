@@ -211,19 +211,19 @@ const HeaderRight = styled.div`
 `;
 
 const HeaderProfilePic = styled.img`
-  width: 100px;
-  height: 100px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid #fff;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+  box-shadow: 0 3px 14px rgba(0,0,0,0.12);
   margin-right: 0;
   margin-left: 8px;
   margin-top: 0;
   margin-bottom: 0;
   @media (max-width: 430px) {
-    width: 76px;
-    height: 76px;
+    width: 90px;
+    height: 90px;
     margin-left: 4px;
   }
 `;
@@ -260,10 +260,10 @@ const GlassSection = styled.div`
 `;
 
 const WelcomeTitle = styled.div`
-  font-size: 1.35rem;
-  font-weight: 800;
+  font-size: 1.85rem;
+  font-weight: 900;
   color: #111;
-  margin-bottom: 6px;
+  margin-bottom: 10px;
   letter-spacing: -0.5px;
 `;
 
@@ -281,8 +281,8 @@ const SectionTitleRow = styled.div`
 `;
 
 const SectionTitle = styled.div`
-  font-size: 1.15rem;
-  font-weight: 700;
+  font-size: 1.65rem;
+  font-weight: 900;
   color: #222;
   margin-right: 8px;
 `;

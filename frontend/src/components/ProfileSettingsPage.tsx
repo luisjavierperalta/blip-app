@@ -182,6 +182,15 @@ const LoadingMsg = styled(Message)`
   color: #888;
 `;
 
+const BackArrow = styled.button`
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #222;
+  cursor: pointer;
+  margin-right: 8px;
+`;
+
 export default function ProfileSettingsPage() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
@@ -338,79 +347,82 @@ export default function ProfileSettingsPage() {
   if (loading) return <LoadingMsg>Loading profile...</LoadingMsg>;
 
   return (
-    <SettingsBg>
-      <SettingsCard>
-        <SectionTitle>Profile Images</SectionTitle>
-        <GalleryPreview>
-          {profileImages.map((img, i) => (
-            <div key={i} style={{position:'relative'}}>
-              <GalleryImg src={img} alt={`Profile ${i+1}`} />
-              <RemoveTagBtn style={{position:'absolute',top:2,right:2}} onClick={()=>handleRemoveImage(i)} title="Remove">×</RemoveTagBtn>
-            </div>
-          ))}
-          <label style={{cursor:'pointer'}}>
-            <input type="file" accept="image/*" style={{display:'none'}} onChange={handleImageUpload} />
-            <span style={{fontSize: '2rem', color: '#1ecb83', marginLeft: 6}}>+</span>
-          </label>
-        </GalleryPreview>
-        <SectionTitle>Gallery (Photos & Videos, max 10)</SectionTitle>
-        <GalleryPreview>
-          {gallery.map((media, i) => (
-            <GalleryMedia key={i}>
-              {media.match(/\.(mp4|webm|ogg)$/i)
-                ? <GalleryVideo src={media} controls />
-                : <GalleryImg src={media} alt={`Gallery ${i+1}`} />}
-              <RemoveTagBtn style={{position:'absolute',top:2,right:2}} onClick={()=>handleRemoveGallery(i)} title="Remove">×</RemoveTagBtn>
-            </GalleryMedia>
-          ))}
-          {gallery.length < 10 && (
-            <label style={{cursor:'pointer',width:90,height:90,display:'flex',alignItems:'center',justifyContent:'center',border:'1.5px dashed #b3e0ff',borderRadius:12,background:'#f8fafc'}}>
-              <input type="file" accept="image/*,video/*" style={{display:'none'}} multiple onChange={handleGalleryUpload} />
-              <span style={{fontSize: '2rem', color: '#1ecb83'}}>+</span>
+    <>
+      <BackArrow onClick={() => navigate(-1)}>&larr;</BackArrow>
+      <SettingsBg>
+        <SettingsCard>
+          <SectionTitle>Profile Images</SectionTitle>
+          <GalleryPreview>
+            {profileImages.map((img, i) => (
+              <div key={i} style={{position:'relative'}}>
+                <GalleryImg src={img} alt={`Profile ${i+1}`} />
+                <RemoveTagBtn style={{position:'absolute',top:2,right:2}} onClick={()=>handleRemoveImage(i)} title="Remove">×</RemoveTagBtn>
+              </div>
+            ))}
+            <label style={{cursor:'pointer'}}>
+              <input type="file" accept="image/*" style={{display:'none'}} onChange={handleImageUpload} />
+              <span style={{fontSize: '2rem', color: '#1ecb83', marginLeft: 6}}>+</span>
             </label>
-          )}
-        </GalleryPreview>
-        <SectionTitle>Intro / Location</SectionTitle>
-        <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="Location" required />
-        <SectionTitle>Profession</SectionTitle>
-        <Input value={profession} onChange={e => setProfession(e.target.value)} placeholder="Profession" required />
-        <SectionTitle>Lifestyle</SectionTitle>
-        <Input value={lifestyle} onChange={e => setLifestyle(e.target.value)} placeholder="Lifestyle" />
-        <SectionTitle>Looking for</SectionTitle>
-        <Input value={lookingFor} onChange={e => setLookingFor(e.target.value)} placeholder="Looking for" />
-        <SectionTitle>Cool Points</SectionTitle>
-        <Input type="number" value={coolPoints} onChange={e => setCoolPoints(Number(e.target.value))} placeholder="Cool Points" />
-        <SectionTitle>About me</SectionTitle>
-        <TextArea value={bio} onChange={e => setBio(e.target.value)} maxLength={160} placeholder="About me (max 160 chars)" required />
-        <SectionTitle>Interests</SectionTitle>
-        <TagInput
-          type="text"
-          value={interestInput}
-          onChange={e => setInterestInput(e.target.value)}
-          onKeyDown={handleAddInterest}
-          placeholder="Add interest or emoji and press Enter (e.g. 🎾 Tennis)"
-        />
-        <TagList>
-          {interests.map((tag, idx) => (
-            <Tag key={idx}>
-              {tag}
-              <RemoveTagBtn onClick={() => handleRemoveInterest(idx)} title="Remove">×</RemoveTagBtn>
-            </Tag>
-          ))}
-        </TagList>
-        <SectionTitle>Links</SectionTitle>
-        <Input value={website} onChange={e => setWebsite(e.target.value)} placeholder="Personal website URL" />
-        <Input value={twitter} onChange={e => setTwitter(e.target.value)} placeholder="Twitter URL" />
-        <Input value={instagram} onChange={e => setInstagram(e.target.value)} placeholder="Instagram URL" />
-        <Input value={facebook} onChange={e => setFacebook(e.target.value)} placeholder="Facebook URL" />
-        {error && <ErrorMsg>{error}</ErrorMsg>}
-        {!currentUser && <ErrorMsg>Test mode: Saving is disabled when not logged in.</ErrorMsg>}
-        {success && <Message>Profile saved!</Message>}
-        <ButtonRow>
-          <SaveBtn onClick={handleSave} disabled={saving || !currentUser}>{saving ? 'Saving...' : 'Save'}</SaveBtn>
-          <CancelBtn onClick={() => navigate(-1)}>Cancel</CancelBtn>
-        </ButtonRow>
-      </SettingsCard>
-    </SettingsBg>
+          </GalleryPreview>
+          <SectionTitle>Gallery (Photos & Videos, max 10)</SectionTitle>
+          <GalleryPreview>
+            {gallery.map((media, i) => (
+              <GalleryMedia key={i}>
+                {media.match(/\.(mp4|webm|ogg)$/i)
+                  ? <GalleryVideo src={media} controls />
+                  : <GalleryImg src={media} alt={`Gallery ${i+1}`} />}
+                <RemoveTagBtn style={{position:'absolute',top:2,right:2}} onClick={()=>handleRemoveGallery(i)} title="Remove">×</RemoveTagBtn>
+              </GalleryMedia>
+            ))}
+            {gallery.length < 10 && (
+              <label style={{cursor:'pointer',width:90,height:90,display:'flex',alignItems:'center',justifyContent:'center',border:'1.5px dashed #b3e0ff',borderRadius:12,background:'#f8fafc'}}>
+                <input type="file" accept="image/*,video/*" style={{display:'none'}} multiple onChange={handleGalleryUpload} />
+                <span style={{fontSize: '2rem', color: '#1ecb83'}}>+</span>
+              </label>
+            )}
+          </GalleryPreview>
+          <SectionTitle>Intro / Location</SectionTitle>
+          <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="Location" required />
+          <SectionTitle>Profession</SectionTitle>
+          <Input value={profession} onChange={e => setProfession(e.target.value)} placeholder="Profession" required />
+          <SectionTitle>Lifestyle</SectionTitle>
+          <Input value={lifestyle} onChange={e => setLifestyle(e.target.value)} placeholder="Lifestyle" />
+          <SectionTitle>Looking for</SectionTitle>
+          <Input value={lookingFor} onChange={e => setLookingFor(e.target.value)} placeholder="Looking for" />
+          <SectionTitle>Cool Points</SectionTitle>
+          <Input type="number" value={coolPoints} onChange={e => setCoolPoints(Number(e.target.value))} placeholder="Cool Points" />
+          <SectionTitle>About me</SectionTitle>
+          <TextArea value={bio} onChange={e => setBio(e.target.value)} maxLength={160} placeholder="About me (max 160 chars)" required />
+          <SectionTitle>Interests</SectionTitle>
+          <TagInput
+            type="text"
+            value={interestInput}
+            onChange={e => setInterestInput(e.target.value)}
+            onKeyDown={handleAddInterest}
+            placeholder="Add interest or emoji and press Enter (e.g. 🎾 Tennis)"
+          />
+          <TagList>
+            {interests.map((tag, idx) => (
+              <Tag key={idx}>
+                {tag}
+                <RemoveTagBtn onClick={() => handleRemoveInterest(idx)} title="Remove">×</RemoveTagBtn>
+              </Tag>
+            ))}
+          </TagList>
+          <SectionTitle>Links</SectionTitle>
+          <Input value={website} onChange={e => setWebsite(e.target.value)} placeholder="Personal website URL" />
+          <Input value={twitter} onChange={e => setTwitter(e.target.value)} placeholder="Twitter URL" />
+          <Input value={instagram} onChange={e => setInstagram(e.target.value)} placeholder="Instagram URL" />
+          <Input value={facebook} onChange={e => setFacebook(e.target.value)} placeholder="Facebook URL" />
+          {error && <ErrorMsg>{error}</ErrorMsg>}
+          {!currentUser && <ErrorMsg>Test mode: Saving is disabled when not logged in.</ErrorMsg>}
+          {success && <Message>Profile saved!</Message>}
+          <ButtonRow>
+            <SaveBtn onClick={handleSave} disabled={saving || !currentUser}>{saving ? 'Saving...' : 'Save'}</SaveBtn>
+            <CancelBtn onClick={() => navigate(-1)}>Cancel</CancelBtn>
+          </ButtonRow>
+        </SettingsCard>
+      </SettingsBg>
+    </>
   );
 } 

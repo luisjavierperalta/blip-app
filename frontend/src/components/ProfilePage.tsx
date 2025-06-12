@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import verifiedBadge from '../verified.png';
 import icon from '../icon.png';
@@ -42,6 +42,9 @@ const NameRow = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
+  font-size: 2.5rem;
+  font-weight: 950;
+  color: #222;
 `;
 
 const GreenDot = styled.span`
@@ -189,37 +192,39 @@ const InfoSection = styled.div`
 
 const Location = styled.div`
   color: #1ecb83;
-  font-size: 1.08rem;
-  font-weight: 700;
+  font-size: 1.55rem;
+  font-weight: 800;
   margin-bottom: 2px;
 `;
 
 const NameAge = styled.div`
-  font-size: 1.18rem;
-  font-weight: 800;
+  font-size: 1.38rem;
+  font-weight: 850;
   color: #222;
   margin-bottom: 2px;
 `;
 
 const Job = styled.div`
   color: #222;
-  font-size: 1.08rem;
+  font-size: 1.22rem;
   margin-bottom: 2px;
 `;
 
 const Label = styled.span`
   color: #111;
   font-weight: 700;
+  font-size: 1.18rem;
 `;
 
 const Value = styled.span`
   color: #222;
   font-weight: 500;
+  font-size: 1.18rem;
 `;
 
 const Website = styled.a`
   color: #1e90ff;
-  font-size: 1.05rem;
+  font-size: 1.32rem;
   text-decoration: underline;
   margin-top: 2px;
   font-weight: 700;
@@ -230,11 +235,11 @@ const MyNetworkBtn = styled.button`
   margin: 24px auto 0 auto;
   background: linear-gradient(90deg, #007aff 0%, #00b8ff 100%);
   color: #fff;
-  font-size: 1.18rem;
+  font-size: 1.28rem;
   font-weight: 700;
   border: none;
   border-radius: 18px;
-  padding: 16px 0;
+  padding: 18px 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -261,11 +266,11 @@ const CreateActivityBtn = styled.button`
   margin: 24px auto 0 auto;
   background: linear-gradient(90deg, #007aff 0%, #1ecb83 100%);
   color: #fff;
-  font-size: 1.18rem;
+  font-size: 1.28rem;
   font-weight: 700;
   border: none;
   border-radius: 18px;
-  padding: 16px 0;
+  padding: 18px 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -326,8 +331,8 @@ const ChevronBtn = styled.button`
 `;
 
 const SectionTitle = styled.div`
-  font-weight: 700;
-  font-size: 1.08rem;
+  font-weight: 800;
+  font-size: 1.22rem;
   color: #222;
   margin-bottom: 8px;
 `;
@@ -342,8 +347,8 @@ const ActivityList = styled.div`
 const ActivityItem = styled.div`
   background: #f5f6fa;
   border-radius: 12px;
-  padding: 10px 14px;
-  font-size: 0.98rem;
+  padding: 12px 16px;
+  font-size: 1.12rem;
   color: #333;
   border: 1px solid #e6eaf1;
   display: flex;
@@ -353,14 +358,14 @@ const ActivityItem = styled.div`
 `;
 
 const ActivityDate = styled.div`
-  font-size: 0.92rem;
+  font-size: 1.05rem;
   color: #888;
   margin-top: 2px;
   font-weight: 500;
 `;
 
 const ActivityOwner = styled.div`
-  font-size: 0.92rem;
+  font-size: 1.05rem;
   color: #007aff;
   margin-top: 1px;
   font-weight: 600;
@@ -368,15 +373,16 @@ const ActivityOwner = styled.div`
 
 const GalleryScroll = styled.div`
   width: 100%;
-  max-width: 340px;
+  max-width: 390px;
   margin: 22px auto 0 auto;
-  padding: 8px 0 8px 0;
+  padding: 8px 0 18px 0;
   display: flex;
   flex-direction: row;
   gap: 14px;
   overflow-x: auto;
   scrollbar-width: thin;
   scrollbar-color: #e6eaf1 #fff;
+  white-space: nowrap;
   &::-webkit-scrollbar {
     height: 8px;
     background: #fff;
@@ -388,13 +394,14 @@ const GalleryScroll = styled.div`
 `;
 
 const GalleryImage = styled.img`
-  width: 120px;
-  height: 140px;
+  width: 150px;
+  height: 180px;
   object-fit: cover;
   border-radius: 18px;
   border: 1.5px solid #e6eaf1;
   background: #f5f6fa;
   flex-shrink: 0;
+  display: inline-block;
 `;
 
 const GalleryModalOverlay = styled.div`
@@ -430,8 +437,8 @@ const InterestsSection = styled.div`
 `;
 
 const InterestsTitle = styled.div`
-  font-weight: 700;
-  font-size: 1.08rem;
+  font-weight: 800;
+  font-size: 1.22rem;
   color: #222;
   margin-bottom: 8px;
 `;
@@ -445,10 +452,10 @@ const InterestsList = styled.div`
 const InterestTag = styled.div`
   background: #e6f4ff;
   color: #007aff;
-  font-size: 0.98rem;
-  font-weight: 600;
+  font-size: 1.12rem;
+  font-weight: 700;
   border-radius: 16px;
-  padding: 6px 16px;
+  padding: 8px 18px;
   border: 1.5px solid #b3e0ff;
   box-shadow: 0 1px 4px rgba(30,40,80,0.04);
 `;
@@ -468,8 +475,8 @@ const LinksSection = styled.div`
 `;
 
 const LinksTitle = styled.div`
-  font-weight: 700;
-  font-size: 1.08rem;
+  font-weight: 800;
+  font-size: 1.22rem;
   color: #222;
   margin-bottom: 8px;
 `;
@@ -486,8 +493,8 @@ const LinkRow = styled.a`
   align-items: center;
   gap: 10px;
   color: #1e90ff;
-  font-size: 1.01rem;
-  font-weight: 600;
+  font-size: 1.12rem;
+  font-weight: 700;
   text-decoration: underline;
   transition: color 0.18s;
   &:hover {
@@ -537,6 +544,55 @@ const TrashIconBtn = styled.button`
   &:hover { color: #b71c1c; }
 `;
 
+// Add new styled component for multiple profile images
+const MultiProfileImageWrapper = styled.div`
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-bottom: 18px;
+`;
+
+const MultiProfileImage = styled.img`
+  width: 120px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 28px;
+  box-shadow: 0 4px 24px rgba(30,40,80,0.10);
+  border: 3px solid #e6eaf1;
+  background: #f8fafc;
+`;
+
+// Add a scrollable wrapper for up to 3 profile pictures
+const ProfileImageCarousel = styled.div`
+  width: 240px;
+  height: 280px;
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  gap: 0;
+  border-radius: 32px;
+  box-shadow: 0 4px 24px rgba(30,40,80,0.10);
+  border: 3px solid #e6eaf1;
+  background: #f8fafc;
+  margin-bottom: 18px;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+`;
+
+const CarouselImage = styled.img`
+  width: 240px;
+  height: 280px;
+  object-fit: cover;
+  border-radius: 32px;
+  scroll-snap-align: center;
+  flex-shrink: 0;
+`;
+
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -551,6 +607,11 @@ const ProfilePage: React.FC = () => {
     lookingFor: 'Cinema night!',
     website: 'luisjavierperalta.com',
     photoURL: '/IMG_20250315_193341(1)(1).png',
+    profilePictures: [
+      '/IMG_20250315_193341(1)(1).png',
+      '/gallery_placeholder_1.jpg',
+      '/gallery_placeholder_2.jpg',
+    ], // up to 3 profile pictures
     verified: true,
     gallery: [
       '/gallery_placeholder_1.jpg',
@@ -572,6 +633,9 @@ const ProfilePage: React.FC = () => {
     { id: '3', title: '🎬 Movie Night: Inception', date: '2024-06-08, 21:00' },
   ]);
   const [isOnline, setIsOnline] = useState(false);
+  const [carouselIdx, setCarouselIdx] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const profilePictures = (user.profilePictures && user.profilePictures.length > 0 ? user.profilePictures : [user.photoURL]).slice(0, 3);
 
   useEffect(() => {
     if (userId) {
@@ -600,8 +664,17 @@ const ProfilePage: React.FC = () => {
   };
 
   const gallery = user.gallery && user.gallery.length > 0
-    ? user.gallery.slice(0, 10)
+    ? user.gallery
     : [...Array(10)].map((_, i) => `/gallery_placeholder_${(i%3)+1}.jpg`);
+
+  // Handle scroll to update dot
+  const handleCarouselScroll = () => {
+    if (!carouselRef.current) return;
+    const scrollLeft = carouselRef.current.scrollLeft;
+    const width = carouselRef.current.offsetWidth;
+    const idx = Math.round(scrollLeft / width);
+    setCarouselIdx(idx);
+  };
 
   return (
     <ProfileBg>
@@ -613,14 +686,16 @@ const ProfilePage: React.FC = () => {
         </NameRow>
       </Header>
       <Card>
-        <ProfileImageWrapper>
-          <ProfileImage src={user.photoURL} alt={user.name} />
-        </ProfileImageWrapper>
-        <Dots>
-          <Dot className="active" />
-          <Dot />
-          <Dot />
-        </Dots>
+        <ProfileImageCarousel ref={carouselRef} onScroll={handleCarouselScroll}>
+          {profilePictures.map((img, idx) => (
+            <CarouselImage key={idx} src={img} alt={user.name + ' profile ' + (idx+1)} />
+          ))}
+        </ProfileImageCarousel>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 18 }}>
+          {profilePictures.map((_, idx) => (
+            <div key={idx} style={{ width: 12, height: 12, borderRadius: '50%', background: carouselIdx === idx ? '#222' : '#e6eaf1', transition: 'background 0.2s' }} />
+          ))}
+        </div>
         <IconStack>
           <AppleIconButton title="Settings" style={{position:'relative'}} onClick={handleSettingsClick}>
             <span role="img" aria-label="settings">⚙️</span>
@@ -634,7 +709,7 @@ const ProfilePage: React.FC = () => {
           <Location>{user.location}</Location>
           <NameAge>
             <span style={{fontWeight:800}}>{user.name}</span>, {user.age}
-            {user.verified && <img src={verifiedBadge} alt="verified" style={{width:22, height:22, marginLeft:6, verticalAlign:'middle'}} />}
+            {user.verified && <img src={verifiedBadge} alt="verified" style={{width:32, height:32, marginLeft:10, verticalAlign:'middle'}} />}
           </NameAge>
           <Job>{user.job}</Job>
           <div><Label>Lifestyle</Label>: <Value>{user.lifestyle}</Value></div>
@@ -716,7 +791,7 @@ const ProfilePage: React.FC = () => {
           {gallery.map((media, i) =>
             media.match(/\.(mp4|webm|ogg)$/i)
               ? (
-                  <div key={i} style={{width:120, height:140, borderRadius:18, overflow:'hidden', border:'1.5px solid #e6eaf1', background:'#f5f6fa', flexShrink:0, display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}} onClick={() => setOpenGalleryIdx(i)}>
+                  <div key={i} style={{width:150, height:180, borderRadius:18, overflow:'hidden', border:'1.5px solid #e6eaf1', background:'#f5f6fa', flexShrink:0, display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer', display:'inline-block'}} onClick={() => setOpenGalleryIdx(i)}>
                     <video src={media} style={{width:'100%',height:'100%',objectFit:'cover'}} controls={false} />
                   </div>
                 )
