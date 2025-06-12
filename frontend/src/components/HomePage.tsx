@@ -17,6 +17,8 @@ import { useAuth } from '../contexts/AuthContext';
 import SearchPage from './SearchPage';
 import { FiBell } from 'react-icons/fi';
 import NotificationCenter from './NotificationCenter';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../config/firebase';
 
 export const users = [
   {
@@ -583,6 +585,7 @@ const HomePage: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [currentLat, setCurrentLat] = useState<number | null>(null);
   const [currentLon, setCurrentLon] = useState<number | null>(null);
+  const [userCounts, setUserCounts] = useState<{ available: number; active: number }>({ available: 0, active: 0 });
 
   // Fetch current user's location
   useEffect(() => {
@@ -631,6 +634,21 @@ const HomePage: React.FC = () => {
 
     return () => unsubscribe();
   }, [currentUser]);
+
+  // Fetch user counts for map icon
+  useEffect(() => {
+    const fetchCounts = async () => {
+      if (!currentLat || !currentLon) return;
+      try {
+        const getUserCountsByRange = httpsCallable(functions, 'getUserCountsByRange');
+        const res: any = await getUserCountsByRange({ filter, lat: currentLat, lon: currentLon });
+        if (res && res.data) setUserCounts(res.data);
+      } catch (e) {
+        // fallback: don't update
+      }
+    };
+    fetchCounts();
+  }, [filter, currentLat, currentLon]);
 
   // Define filter radius in meters
   const filterRadius = filter === '300m' ? 300 : filter === '25km' ? 25000 : 1000000;
@@ -697,7 +715,30 @@ const HomePage: React.FC = () => {
               <NavLabel>Home</NavLabel>
             </NavBtn>
             <NavBtn active={location.pathname === '/map'} onClick={() => navigate('/map')}>
-              <MapIcon active={location.pathname === '/map'} />
+              <div style={{ position: 'relative' }}>
+                <MapIcon active={location.pathname === '/map'} />
+                {(userCounts.available > 0 || userCounts.active > 0) && (
+                  <NotificationBadge style={{
+                    top: -8,
+                    right: -8,
+                    background: '#1ecb83',
+                    color: 'white',
+                    minWidth: 22,
+                    height: 22,
+                    fontSize: '0.85rem',
+                    borderRadius: 11,
+                    border: '2px solid white',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'absolute',
+                    zIndex: 2
+                  }}>
+                    {userCounts.available}/{userCounts.active}
+                  </NotificationBadge>
+                )}
+              </div>
               <NavLabel>Map</NavLabel>
             </NavBtn>
             <NavBtn active={location.pathname === '/search'} onClick={() => navigate('/search')}>

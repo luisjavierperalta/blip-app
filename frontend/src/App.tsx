@@ -9,6 +9,7 @@ import DevNavigation from './components/DevNavigation';
 import { AuthProvider } from './contexts/AuthContext';
 import SearchPage from './components/SearchPage';
 import ProfilePage from './components/ProfilePage';
+import ProfileSettingsPage from './components/ProfileSettingsPage';
 
 export default function App() {
   const location = useLocation();
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="/map" element={<MapPage />} />
         <Route path="/messages" element={<MessagesPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/profile/settings" element={<ProfileSettingsPage />} />
       </Routes>
       {location.pathname === '/search' && (
         <SearchPage onClose={() => navigate(-1)} />

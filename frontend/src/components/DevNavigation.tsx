@@ -39,6 +39,7 @@ export default function DevNavigation() {
       <NavButton onClick={() => navigate('/')} title="Auth">A</NavButton>
       <NavButton onClick={() => navigate('/login')} title="Login">B</NavButton>
       <NavButton onClick={() => navigate('/home')} title="Home">H</NavButton>
+      <NavButton onClick={() => navigate('/profile')} title="Profile">P</NavButton>
     </NavContainer>
   );
 } 

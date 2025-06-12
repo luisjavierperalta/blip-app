@@ -41,7 +41,9 @@ exports.createUser = onCall(async (data, context) => {
       phoneNumber,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       verified: false,
-      profileComplete: false
+      profileComplete: false,
+      available: true,
+      active: true
     });
 
     return {
@@ -86,15 +88,20 @@ exports.verifyPhoneNumber = onCall(async (data, context) => {
 // Update User Profile
 exports.updateUserProfile = onCall(async (data, context) => {
   try {
-    const { username, phoneNumber } = data;
+    const { username, phoneNumber, available, active } = data;
     const uid = context.auth.uid;
 
-    // Update user profile in Firestore
-    await admin.firestore().collection('users').doc(uid).update({
+    // Build update object
+    const updateObj = {
       username,
       phoneNumber,
       profileComplete: true
-    });
+    };
+    if (typeof available === 'boolean') updateObj.available = available;
+    if (typeof active === 'boolean') updateObj.active = active;
+
+    // Update user profile in Firestore
+    await admin.firestore().collection('users').doc(uid).update(updateObj);
 
     // Update user in Auth
     await admin.auth().updateUser(uid, {
@@ -129,6 +136,51 @@ exports.deleteUserAccount = onCall(async (data, context) => {
     };
   } catch (error) {
     logger.error('Error deleting account:', error);
+    throw new HttpsError('internal', error.message);
+  }
+});
+
+// Utility to calculate distance between two lat/lon points in meters
+function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000; // Radius of the earth in meters
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Callable function to get user counts by range
+exports.getUserCountsByRange = onCall(async (data, context) => {
+  try {
+    const { filter, lat, lon } = data;
+    const uid = context.auth.uid;
+    if (!uid) throw new HttpsError('unauthenticated', 'User must be authenticated');
+    if (!lat || !lon || !filter) throw new HttpsError('invalid-argument', 'Missing lat/lon/filter');
+
+    // Define filter radius in meters
+    let filterRadius = 300;
+    if (filter === '25km') filterRadius = 25000;
+    else if (filter === '1000km') filterRadius = 1000000;
+
+    // Query all users except the current user
+    const usersSnap = await admin.firestore().collection('users').where('uid', '!=', uid).get();
+    let available = 0;
+    let active = 0;
+    usersSnap.forEach(doc => {
+      const user = doc.data();
+      if (!user.location || typeof user.location.latitude !== 'number' || typeof user.location.longitude !== 'number') return;
+      const d = getDistanceFromLatLonInMeters(lat, lon, user.location.latitude, user.location.longitude);
+      if (d > filterRadius) return;
+      if (user.available) available++;
+      if (user.active) active++;
+    });
+    return { available, active };
+  } catch (error) {
+    logger.error('Error in getUserCountsByRange:', error);
     throw new HttpsError('internal', error.message);
   }
 });
