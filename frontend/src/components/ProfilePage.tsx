@@ -6,6 +6,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { db } from '../config/firebase';
 import { doc, updateDoc, arrayRemove } from 'firebase/firestore';
 import { subscribeToUserStatus } from '../services/presence';
+import WalletModal from './WalletModal';
 
 const ProfileBg = styled.div`
   min-height: 100vh;
@@ -593,6 +594,17 @@ const CarouselImage = styled.img`
   flex-shrink: 0;
 `;
 
+// Add styled component for Cool Points row
+const CoolPointsRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 0 0;
+  font-size: 1.22rem;
+  font-weight: 700;
+  color: #007aff;
+`;
+
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -636,6 +648,7 @@ const ProfilePage: React.FC = () => {
   const [carouselIdx, setCarouselIdx] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
   const profilePictures = (user.profilePictures && user.profilePictures.length > 0 ? user.profilePictures : [user.photoURL]).slice(0, 3);
+  const [walletOpen, setWalletOpen] = useState(false);
 
   useEffect(() => {
     if (userId) {
@@ -676,6 +689,10 @@ const ProfilePage: React.FC = () => {
     setCarouselIdx(idx);
   };
 
+  // In the ProfilePage component, after the first LinkRow in LinksSection
+  const isMan = /luis|john|mike|ryan|lucas|elija/i.test(user.name);
+  const coolIcon = isMan ? '/coolboy.png' : '/coolgirl.png';
+
   return (
     <ProfileBg>
       <Header>
@@ -701,10 +718,18 @@ const ProfilePage: React.FC = () => {
             <span role="img" aria-label="settings">⚙️</span>
             <GearBadge>16</GearBadge>
           </AppleIconButton>
-          <AppleIconButton title="Grid">
-            <span role="img" aria-label="grid">☰</span>
+          <AppleIconButton title="Wallet" onClick={() => setWalletOpen(true)}>
+            <span role="img" aria-label="wallet">💰</span>
           </AppleIconButton>
         </IconStack>
+        <WalletModal
+          open={walletOpen}
+          onClose={() => setWalletOpen(false)}
+          userId={userId}
+          coolPointsBalance={user.coolPoints}
+          onSend={() => alert('Send Cool Points (coming soon!)')}
+          onBuy={() => alert('Buy Cool Points (coming soon!)')}
+        />
         <InfoSection>
           <Location>{user.location}</Location>
           <NameAge>
@@ -714,6 +739,10 @@ const ProfilePage: React.FC = () => {
           <Job>{user.job}</Job>
           <div><Label>Lifestyle</Label>: <Value>{user.lifestyle}</Value></div>
           <div><Label>Looking for</Label>: <Value>{user.lookingFor}</Value></div>
+          <CoolPointsRow>
+            <img src={coolIcon} alt="cool" style={{width:32,height:32,verticalAlign:'middle'}} />
+            {user.coolPoints.toLocaleString()} Cool Points
+          </CoolPointsRow>
           <Website href={`https://${user.website}`} target="_blank" rel="noopener noreferrer">{user.website}</Website>
         </InfoSection>
         <MyNetworkBtn>
@@ -791,7 +820,7 @@ const ProfilePage: React.FC = () => {
           {gallery.map((media, i) =>
             media.match(/\.(mp4|webm|ogg)$/i)
               ? (
-                  <div key={i} style={{width:150, height:180, borderRadius:18, overflow:'hidden', border:'1.5px solid #e6eaf1', background:'#f5f6fa', flexShrink:0, display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer', display:'inline-block'}} onClick={() => setOpenGalleryIdx(i)}>
+                  <div key={i} style={{ width: 150, height: 180, borderRadius: 18, overflow: 'hidden', border: '1.5px solid #e6eaf1', background: '#f5f6fa', flexShrink: 0, display: 'inline-block', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => setOpenGalleryIdx(i)}>
                     <video src={media} style={{width:'100%',height:'100%',objectFit:'cover'}} controls={false} />
                   </div>
                 )

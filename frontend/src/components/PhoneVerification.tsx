@@ -280,7 +280,7 @@ export default function PhoneVerification({ phoneNumber: initialPhone, onVerific
   const [phoneNumber, setPhoneNumber] = useState(initialPhone || '');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState<string | boolean>('');
   const [isLoading, setIsLoading] = useState(false);
   const inputRefs = Array.from({ length: 6 }, () => React.createRef<HTMLInputElement>());
   const navigate = useNavigate();

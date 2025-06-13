@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const NavContainer = styled.div`
   position: fixed;
@@ -40,6 +40,24 @@ export default function DevNavigation() {
       <NavButton onClick={() => navigate('/login')} title="Login">B</NavButton>
       <NavButton onClick={() => navigate('/home')} title="Home">H</NavButton>
       <NavButton onClick={() => navigate('/profile')} title="Profile">P</NavButton>
+      <Link to="/profile/charlotte" style={{
+        width: 40,
+        height: 40,
+        borderRadius: '50%',
+        background: '#fff',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '1.2rem',
+        fontWeight: 900,
+        color: '#007aff',
+        textDecoration: 'none',
+        border: '2px solid #e6eaf1',
+        transition: 'box-shadow 0.18s, background 0.18s',
+        cursor: 'pointer',
+        marginLeft: 6
+      }}>O</Link>
     </NavContainer>
   );
 } 

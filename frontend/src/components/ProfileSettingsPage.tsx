@@ -353,16 +353,19 @@ export default function ProfileSettingsPage() {
         <SettingsCard>
           <SectionTitle>Profile Images</SectionTitle>
           <GalleryPreview>
-            {profileImages.map((img, i) => (
-              <div key={i} style={{position:'relative'}}>
-                <GalleryImg src={img} alt={`Profile ${i+1}`} />
-                <RemoveTagBtn style={{position:'absolute',top:2,right:2}} onClick={()=>handleRemoveImage(i)} title="Remove">×</RemoveTagBtn>
-              </div>
-            ))}
-            <label style={{cursor:'pointer'}}>
-              <input type="file" accept="image/*" style={{display:'none'}} onChange={handleImageUpload} />
-              <span style={{fontSize: '2rem', color: '#1ecb83', marginLeft: 6}}>+</span>
-            </label>
+            {[0, 1, 2].map(i =>
+              profileImages[i] ? (
+                <div key={i} style={{position:'relative'}}>
+                  <GalleryImg src={profileImages[i]} alt={`Profile ${i+1}`} />
+                  <RemoveTagBtn style={{position:'absolute',top:2,right:2}} onClick={()=>handleRemoveImage(i)} title="Remove">×</RemoveTagBtn>
+                </div>
+              ) : (
+                <label key={i} style={{cursor:'pointer',width:90,height:90,display:'flex',alignItems:'center',justifyContent:'center',border:'1.5px dashed #b3e0ff',borderRadius:12,background:'#f8fafc'}}>
+                  <input type="file" accept="image/*" style={{display:'none'}} onChange={handleImageUpload} />
+                  <span style={{fontSize: '2rem', color: '#1ecb83', marginLeft: 6}}>+</span>
+                </label>
+              )
+            )}
           </GalleryPreview>
           <SectionTitle>Gallery (Photos & Videos, max 10)</SectionTitle>
           <GalleryPreview>

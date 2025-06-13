@@ -10,6 +10,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import SearchPage from './components/SearchPage';
 import ProfilePage from './components/ProfilePage';
 import ProfileSettingsPage from './components/ProfileSettingsPage';
+import ProfilePagePublic from './components/ProfilePagePublic';
 import { setupPresence } from './services/presence';
 
 export default function App() {
@@ -33,6 +34,8 @@ export default function App() {
         <Route path="/messages" element={<MessagesPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/profile/settings" element={<ProfileSettingsPage />} />
+        <Route path="/profile/charlotte" element={<ProfilePagePublic />} />
+        <Route path="/profile/:userId" element={<ProfilePagePublic />} />
       </Routes>
       {location.pathname === '/search' && (
         <SearchPage onClose={() => navigate(-1)} />
