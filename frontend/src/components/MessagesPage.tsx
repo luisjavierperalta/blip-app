@@ -4,7 +4,7 @@ import { db, auth, storage } from '../config/firebase';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, doc, getDoc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { users as mockUsers } from './HomePage';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const GlobalStyle = createGlobalStyle`
   @font-face {
@@ -244,6 +244,20 @@ export default function MessagesPage({ chatUser, onClose }: { chatUser?: any, on
   const [filteredConvos, setFilteredConvos] = useState<any[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<any[]>(mockUsers);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Get chat ID from URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const chatId = params.get('chat');
+    if (chatId) {
+      // Find the conversation with this ID
+      const conversation = conversations.find(c => c.id === chatId);
+      if (conversation) {
+        setSelected(conversation);
+      }
+    }
+  }, [location.search, conversations]);
 
   // Fetch conversations
   useEffect(() => {

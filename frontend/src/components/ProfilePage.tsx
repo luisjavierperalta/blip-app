@@ -745,7 +745,7 @@ const ProfilePage: React.FC = () => {
           </CoolPointsRow>
           <Website href={`https://${user.website}`} target="_blank" rel="noopener noreferrer">{user.website}</Website>
         </InfoSection>
-        <MyNetworkBtn>
+        <MyNetworkBtn onClick={() => navigate('/my-network')}>
           <NetworkIcon>🌐</NetworkIcon>
           My network
         </MyNetworkBtn>

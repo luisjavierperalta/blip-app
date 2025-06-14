@@ -29,9 +29,13 @@ service cloud.firestore {
 
     // Users collection
     match /users/{userId} {
-      allow read: if isAuthenticated();
+      // Allow public read access to user profiles
+      allow read: if true;
+      // Only allow authenticated users to create their own profile
       allow create: if isAuthenticated() && request.auth.uid == userId;
+      // Only allow users to update their own profile
       allow update: if isOwner(userId);
+      // Only allow users to delete their own profile
       allow delete: if isOwner(userId);
     }
 

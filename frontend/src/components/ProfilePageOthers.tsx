@@ -21,6 +21,9 @@ import { giftCoolPoint } from '../services/coolPoints';
 import { useAuth } from '../contexts/AuthContext';
 import WelcomeCoolPoints from './WelcomeCoolPoints';
 import CoolPointsNotification from './CoolPointsNotification';
+import { sendConnectionRequest, getConnectionStatus, getConnectionCount, acceptConnectionRequest, removeConnection } from '../services/connections';
+import ConnectionNotification from './ConnectionNotification';
+import MessageButton from './MessageButton';
 
 const ProfileBg = styled.div`
   min-height: 100vh;
@@ -501,10 +504,17 @@ const LinkRow = styled.a`
   color: #1e90ff;
   font-size: 1.12rem;
   font-weight: 700;
-  text-decoration: underline;
+  text-decoration: none;
   transition: color 0.18s;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #f8f9fa;
+  border: 1.5px solid #e6eaf1;
+  width: 100%;
   &:hover {
     color: #007aff;
+    background: #f0f7ff;
+    border-color: #007aff;
   }
 `;
 
@@ -513,11 +523,17 @@ const LinkIcon = styled.span`
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 `;
 
 const LinkUrl = styled.span`
-  font-weight: 300;
+  font-weight: 500;
   font-family: 'Interstate', Arial, sans-serif;
+  color: #007aff;
 `;
 
 const EditIconBtn = styled.button`
@@ -694,8 +710,40 @@ const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser } = useAuth();
-  // Mock user data
-  const user = {
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  // All useState hooks
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showMyActivities, setShowMyActivities] = useState(true);
+  const [openGalleryIdx, setOpenGalleryIdx] = useState<number|null>(null);
+  const [editActivities, setEditActivities] = useState(false);
+  const [myActivities, setMyActivities] = useState([
+    { id: '1', title: '🎾 Tennis Match @ Central Park', date: '2024-06-10, 18:00' },
+    { id: '2', title: '☕ Coffee Meetup @ Blue Bottle', date: '2024-06-09, 10:30' },
+    { id: '3', title: '🎬 Movie Night: Inception', date: '2024-06-08, 21:00' },
+  ]);
+  const [isOnline, setIsOnline] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showCoolPointsModal, setShowCoolPointsModal] = useState(false);
+  const [coolPointsAmount, setCoolPointsAmount] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [notification, setNotification] = useState<{
+    amount: number;
+    senderName: string;
+  } | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<'none' | 'pending' | 'connected'>('none');
+  const [connectionCount, setConnectionCount] = useState(0);
+  const [showConnNotification, setShowConnNotification] = useState(false);
+  const [connNotificationType, setConnNotificationType] = useState<'request' | 'accepted'>('request');
+
+  // Get userId from URL params
+  const userId = location.pathname.split('/').pop();
+
+  // Mock data for development
+  const mockUser = {
     name: 'Luis Javier Peralta',
     age: 27,
     location: 'Milan, Italy',
@@ -709,38 +757,81 @@ const ProfilePage: React.FC = () => {
       '/IMG_20250315_193341(1)(1).png',
       '/gallery_placeholder_1.jpg',
       '/gallery_placeholder_2.jpg',
-    ], // up to 3 profile pictures
+    ],
     verified: true,
     gallery: [
       '/gallery_placeholder_1.jpg',
       '/gallery_placeholder_2.jpg',
       '/gallery_placeholder_3.jpg',
-    ], // TODO: Replace with real data from Firestore
+    ],
+    bio: 'Passionate about tech, hiking, and cinema. Always up for a new adventure or a deep conversation.',
+    interests: ['Hiking', 'Mountains', 'Running', 'Fashion Design', 'Photography', 'Travel', 'Tech'],
+    twitter: 'twitter.com/luisjperalta',
+    instagram: 'instagram.com/luisjperalta',
+    facebook: 'facebook.com/luisjperalta',
+    linkedin: 'linkedin.com/in/luisjperalta',
+    github: 'github.com/luisjperalta'
   };
 
-  const [showMyActivities, setShowMyActivities] = useState(true);
-  const [openGalleryIdx, setOpenGalleryIdx] = useState<number|null>(null);
-  const [editActivities, setEditActivities] = useState(false);
-  // Mock user id for demo; replace with real user id from context
-  const userId = 'demoUserId';
-  // Mock activities; in real app, fetch from backend
-  const [myActivities, setMyActivities] = useState([
-    { id: '1', title: '🎾 Tennis Match @ Central Park', date: '2024-06-10, 18:00' },
-    { id: '2', title: '☕ Coffee Meetup @ Blue Bottle', date: '2024-06-09, 10:30' },
-    { id: '3', title: '🎬 Movie Night: Inception', date: '2024-06-08, 21:00' },
-  ]);
-  const [isOnline, setIsOnline] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const carouselRef = useRef<HTMLDivElement>(null);
-  const profilePictures = (user.profilePictures && user.profilePictures.length > 0 ? user.profilePictures : [user.photoURL]).slice(0, 3);
-  const [showCoolPointsModal, setShowCoolPointsModal] = useState(false);
-  const [coolPointsAmount, setCoolPointsAmount] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(false);
-  const [notification, setNotification] = useState<{
-    amount: number;
-    senderName: string;
-  } | null>(null);
+  // All useEffect hooks
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!userId) {
+        setError('User ID not found');
+        setLoading(false);
+        return;
+      }
+
+      // Use mock data in development mode when not authenticated
+      if (!currentUser && process.env.NODE_ENV === 'development') {
+        setUser(mockUser);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const userDoc = await getDoc(doc(db, 'users', userId));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setUser({
+            name: userData.displayName || userData.username || 'Anonymous',
+            age: userData.age || 0,
+            location: userData.location || 'Location not set',
+            job: userData.profession || 'Profession not set',
+            lifestyle: userData.lifestyle || 'Lifestyle not set',
+            coolPoints: userData.coolPointsPublic || 0,
+            lookingFor: userData.lookingFor || 'Not specified',
+            website: userData.website || '',
+            photoURL: userData.profileImages?.[0] || '/default_profile.png',
+            profilePictures: userData.profileImages || [],
+            verified: userData.verified || false,
+            gallery: userData.gallery || [],
+            bio: userData.bio || 'No bio yet',
+            interests: userData.interests || [],
+            twitter: userData.twitter || '',
+            instagram: userData.instagram || '',
+            facebook: userData.facebook || '',
+            linkedin: userData.linkedin || '',
+            github: userData.github || ''
+          });
+        } else {
+          setError('User not found');
+        }
+      } catch (err) {
+        console.error('Error fetching user data:', err);
+        // In development, fall back to mock data on error
+        if (process.env.NODE_ENV === 'development') {
+          setUser(mockUser);
+        } else {
+          setError('Error fetching user data');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [userId, currentUser]);
 
   useEffect(() => {
     if (userId) {
@@ -772,7 +863,6 @@ const ProfilePage: React.FC = () => {
     checkNewUser();
   }, [currentUser]);
 
-  // Subscribe to cool points transactions
   useEffect(() => {
     if (!currentUser) return;
 
@@ -800,6 +890,36 @@ const ProfilePage: React.FC = () => {
 
     return () => unsubscribe();
   }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser || !userId) return;
+    getConnectionStatus(currentUser.uid, userId).then(setConnectionStatus);
+    getConnectionCount(userId).then(setConnectionCount);
+  }, [currentUser, userId]);
+
+  if (loading) {
+    return (
+      <ProfileBg>
+        <div style={{ textAlign: 'center', padding: '20px' }}>Loading profile...</div>
+      </ProfileBg>
+    );
+  }
+
+  if (error) {
+    return (
+      <ProfileBg>
+        <div style={{ textAlign: 'center', padding: '20px', color: '#ff3b30' }}>{error}</div>
+      </ProfileBg>
+    );
+  }
+
+  if (!user) {
+    return (
+      <ProfileBg>
+        <div style={{ textAlign: 'center', padding: '20px' }}>User not found</div>
+      </ProfileBg>
+    );
+  }
 
   const handleRemoveActivity = async (activityId: string) => {
     setMyActivities(myActivities.filter(a => a.id !== activityId));
@@ -867,6 +987,33 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  const handleConnect = async () => {
+    if (!currentUser) {
+      alert('Please log in to connect');
+      return;
+    }
+    try {
+      if (connectionStatus === 'none') {
+        await sendConnectionRequest(currentUser.uid, userId);
+        setConnectionStatus('pending');
+        setConnNotificationType('request');
+        setShowConnNotification(true);
+      } else if (connectionStatus === 'pending') {
+        await acceptConnectionRequest(userId, currentUser.uid);
+        setConnectionStatus('connected');
+        setConnNotificationType('accepted');
+        setShowConnNotification(true);
+        setConnectionCount(c => c + 1);
+      } else if (connectionStatus === 'connected') {
+        await removeConnection(currentUser.uid, userId);
+        setConnectionStatus('none');
+        setConnectionCount(c => Math.max(0, c - 1));
+      }
+    } catch (e: any) {
+      alert(e.message || 'Connection action failed');
+    }
+  };
+
   return (
     <ProfileBg>
       <Header>
@@ -882,7 +1029,7 @@ const ProfilePage: React.FC = () => {
             ref={carouselRef}
             onScroll={handleCarouselScroll}
           >
-            {profilePictures.map((image, index) => (
+            {user.profilePictures.map((image: string, index: number) => (
               <CarouselImage
                 key={index}
                 src={image}
@@ -891,7 +1038,7 @@ const ProfilePage: React.FC = () => {
             ))}
           </ProfileImageCarousel>
           <Dots>
-            {profilePictures.map((_, index) => (
+            {user.profilePictures.map((_, index: number) => (
               <Dot
                 key={index}
                 className={index === currentImageIndex ? 'active' : ''}
@@ -913,24 +1060,23 @@ const ProfilePage: React.FC = () => {
           <div><Label>Lifestyle</Label>: <Value>{user.lifestyle}</Value></div>
           <div><Label>Looking for</Label>: <Value>{user.lookingFor}</Value></div>
           <CoolPointsRow>
-            <img 
-              src={/luis|john|mike|ryan|lucas|elija/i.test(user.name) ? '/coolboy.png' : '/coolgirl.png'} 
-              alt="cool points" 
-              style={{width: 32, height: 32, verticalAlign: 'middle'}} 
-            />
+            <img src={coolIcon} alt="cool points" style={{width: 32, height: 32, verticalAlign: 'middle'}} />
             {user.coolPoints.toLocaleString()} Cool Points
           </CoolPointsRow>
+          <div style={{marginTop: 8, fontWeight: 600, color: '#007aff'}}>
+            {connectionCount} Connections
+          </div>
           {user.website && <Website href={`https://${user.website}`} target="_blank" rel="noopener noreferrer">{user.website}</Website>}
         </InfoSection>
         <ActionButtonsContainer>
-          <ActionButton onClick={() => {}}>
-            Connect
+          <ActionButton onClick={handleConnect}>
+            {connectionStatus === 'none' && 'Connect'}
+            {connectionStatus === 'pending' && 'Pending'}
+            {connectionStatus === 'connected' && 'Connected'}
           </ActionButton>
-          <ActionButton onClick={() => {}}>
-            Message
-          </ActionButton>
+          <MessageButton targetUserId={userId} targetUserName={user.name} />
         </ActionButtonsContainer>
-        <MyNetworkBtn onClick={() => navigate('/mynetwork')}>
+        <MyNetworkBtn onClick={() => navigate('/my-network')}>
           My network
         </MyNetworkBtn>
         <SectionCard>
@@ -1014,40 +1160,25 @@ const ProfilePage: React.FC = () => {
         <InterestsSection>
           <InterestsTitle>Interests</InterestsTitle>
           <InterestsList>
-            <InterestTag>Hiking</InterestTag>
-            <InterestTag>Mountains</InterestTag>
-            <InterestTag>Running</InterestTag>
-            <InterestTag>Fashion Design</InterestTag>
-            <InterestTag>Photography</InterestTag>
-            <InterestTag>Travel</InterestTag>
-            <InterestTag>Tech</InterestTag>
+            {user.interests.map((interest: string, index: number) => (
+              <InterestTag key={index}>{interest}</InterestTag>
+            ))}
           </InterestsList>
         </InterestsSection>
         <LinksSection>
           <LinksTitle>Links</LinksTitle>
           <LinkList>
-            <LinkRow href="https://luisjavierperalta.com" target="_blank" rel="noopener noreferrer">
-              <LinkIcon>🌐</LinkIcon>
-              <LinkUrl>luisjavierperalta.com</LinkUrl>
-            </LinkRow>
-            <LinkRow href="https://twitter.com/charlotteHuang" target="_blank" rel="noopener noreferrer">
-              <LinkIcon>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1da1f2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53A4.48 4.48 0 0 0 22.4.36a9.09 9.09 0 0 1-2.88 1.1A4.52 4.52 0 0 0 16.5 0c-2.5 0-4.5 2.01-4.5 4.5 0 .35.04.7.11 1.03C7.69 5.4 4.07 3.67 1.64 1.15c-.38.65-.6 1.4-.6 2.2 0 1.52.77 2.86 1.95 3.65A4.48 4.48 0 0 1 .96 6v.06c0 2.13 1.52 3.91 3.54 4.31-.37.1-.76.16-1.16.16-.28 0-.55-.03-.81-.08.55 1.72 2.16 2.97 4.07 3A9.05 9.05 0 0 1 0 19.54 12.8 12.8 0 0 0 6.92 22c8.28 0 12.81-6.86 12.81-12.81 0-.2 0-.39-.01-.58A9.22 9.22 0 0 0 24 4.59a9.1 9.1 0 0 1-2.6.71A4.48 4.48 0 0 0 23 3z"/></svg>
-              </LinkIcon>
-              <LinkUrl>twitter.com/charlotteHuang</LinkUrl>
-            </LinkRow>
-            <LinkRow href="https://instagram.com/CharlotteHuang" target="_blank" rel="noopener noreferrer">
-              <LinkIcon>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e1306c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.5" y2="6.5"/></svg>
-              </LinkIcon>
-              <LinkUrl>instagram.com/CharlotteHuang</LinkUrl>
-            </LinkRow>
-            <LinkRow href="https://facebook.com/CharlotteHuang" target="_blank" rel="noopener noreferrer">
-              <LinkIcon>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1877f3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-              </LinkIcon>
-              <LinkUrl>facebook.com/CharlotteHuang</LinkUrl>
-            </LinkRow>
+            {Object.entries(user).map(([key, value]) => {
+              if (key.startsWith('https://') && key !== user.website) {
+                return (
+                  <LinkRow key={key} href={key} target="_blank" rel="noopener noreferrer">
+                    <LinkIcon>🌐</LinkIcon>
+                    <LinkUrl>{value}</LinkUrl>
+                  </LinkRow>
+                );
+              }
+              return null;
+            })}
           </LinkList>
         </LinksSection>
       </Card>
@@ -1090,6 +1221,16 @@ const ProfilePage: React.FC = () => {
           senderName={notification.senderName}
           onClose={() => setNotification(null)}
           isMan={isMan}
+        />
+      )}
+
+      {showConnNotification && (
+        <ConnectionNotification
+          type={connNotificationType}
+          userName={user.name}
+          onAccept={() => setShowConnNotification(false)}
+          onReject={() => setShowConnNotification(false)}
+          onClose={() => setShowConnNotification(false)}
         />
       )}
     </ProfileBg>

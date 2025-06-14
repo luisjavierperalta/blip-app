@@ -1,26 +1,35 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { FiMessageSquare } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 
 const Button = styled.button`
+  width: 48%;
+  margin: 24px 0 0 0;
+  padding: 14px 0;
+  font-size: 1.1rem;
+  background: linear-gradient(90deg, #007aff 0%, #00b8ff 100%);
+  color: #fff;
+  font-weight: 700;
+  border: none;
+  border-radius: 18px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: #007AFF;
-  color: white;
-  border: none;
-  border-radius: 20px;
+  justify-content: center;
+  gap: 12px;
+  box-shadow: 0 2px 18px rgba(30,40,80,0.10);
   cursor: pointer;
-  font-size: 0.9rem;
-  transition: background 0.2s;
-  
+  position: relative;
+  transition: box-shadow 0.18s, background 0.18s;
   &:hover {
-    background: #0056b3;
+    background: linear-gradient(90deg, #00b8ff 0%, #007aff 100%);
+    box-shadow: 0 4px 24px rgba(30,40,80,0.13);
+  }
+  &:disabled {
+    background: #ccc;
+    cursor: not-allowed;
   }
 `;
 
@@ -35,7 +44,10 @@ const MessageButton: React.FC<MessageButtonProps> = ({ targetUserId, targetUserN
   const navigate = useNavigate();
 
   const handleStartChat = async () => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      alert('Please log in to send messages');
+      return;
+    }
     setIsLoading(true);
 
     try {
@@ -61,18 +73,32 @@ const MessageButton: React.FC<MessageButtonProps> = ({ targetUserId, targetUserN
         navigate(`/messages?chat=${existingChat}`);
       } else {
         // Create new chat
-        const newChat = await addDoc(chatsRef, {
+        const chatId = `${currentUser.uid}_${targetUserId}`;
+        const chatRef = doc(db, 'conversations', chatId);
+        
+        await setDoc(chatRef, {
           users: [currentUser.uid, targetUserId],
           createdAt: new Date(),
           lastMessage: '',
-          lastMessageTime: new Date()
+          lastMessageTime: new Date(),
+          userMetas: {
+            [currentUser.uid]: {
+              name: currentUser.displayName || 'User',
+              photo: currentUser.photoURL || ''
+            },
+            [targetUserId]: {
+              name: targetUserName,
+              photo: ''
+            }
+          }
         });
 
-        // Navigate to new chat
-        navigate(`/messages?chat=${newChat.id}`);
+        // Navigate to the new chat
+        navigate(`/messages?chat=${chatId}`);
       }
     } catch (error) {
       console.error('Error starting chat:', error);
+      alert('Failed to start chat. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -80,8 +106,7 @@ const MessageButton: React.FC<MessageButtonProps> = ({ targetUserId, targetUserN
 
   return (
     <Button onClick={handleStartChat} disabled={isLoading}>
-      <FiMessageSquare size={18} />
-      {isLoading ? 'Starting chat...' : 'Message'}
+      {isLoading ? 'Loading...' : 'Message'}
     </Button>
   );
 };
