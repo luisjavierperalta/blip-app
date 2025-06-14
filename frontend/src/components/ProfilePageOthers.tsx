@@ -6,7 +6,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { db } from '../config/firebase';
 import { doc, updateDoc, arrayRemove } from 'firebase/firestore';
 import { subscribeToUserStatus } from '../services/presence';
-import WalletModal from './WalletModal';
 
 const ProfileBg = styled.div`
   min-height: 100vh;
@@ -48,11 +47,15 @@ const NameRow = styled.div`
   color: #222;
 `;
 
-const GreenDot = styled.span`
+interface GreenDotProps {
+  $isOnline: boolean;
+}
+
+const GreenDot = styled.span<GreenDotProps>`
   display: inline-block;
   width: 12px;
   height: 12px;
-  background: ${props => props.isOnline ? '#00e676' : '#ff3b30'};
+  background: ${props => props.$isOnline ? '#00e676' : '#ff3b30'};
   border-radius: 50%;
   margin-left: 4px;
   animation: pulse 1.5s infinite;
@@ -260,39 +263,6 @@ const NetworkIcon = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-`;
-
-const CreateActivityBtn = styled.button`
-  width: 98%;
-  margin: 24px auto 0 auto;
-  background: linear-gradient(90deg, #007aff 0%, #1ecb83 100%);
-  color: #fff;
-  font-size: 1.28rem;
-  font-weight: 700;
-  border: none;
-  border-radius: 18px;
-  padding: 18px 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  box-shadow: 0 2px 18px rgba(30,40,80,0.10);
-  cursor: pointer;
-  position: relative;
-  transition: box-shadow 0.18s, background 0.18s;
-  &:hover {
-    background: linear-gradient(90deg, #1ecb83 0%, #007aff 100%);
-    box-shadow: 0 4px 24px rgba(30,40,80,0.13);
-  }
-`;
-const GreenDotBtn = styled.span`
-  width: 16px;
-  height: 16px;
-  background: #1ecb83;
-  border-radius: 50%;
-  display: inline-block;
-  margin-left: -8px;
-  border: 2px solid #fff;
 `;
 
 const SectionCard = styled.div`
@@ -633,7 +603,6 @@ const ProfilePage: React.FC = () => {
   };
 
   const [showMyActivities, setShowMyActivities] = useState(true);
-  const [showJoinedActivities, setShowJoinedActivities] = useState(true);
   const [openGalleryIdx, setOpenGalleryIdx] = useState<number|null>(null);
   const [editActivities, setEditActivities] = useState(false);
   // Mock user id for demo; replace with real user id from context
@@ -648,7 +617,6 @@ const ProfilePage: React.FC = () => {
   const [carouselIdx, setCarouselIdx] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
   const profilePictures = (user.profilePictures && user.profilePictures.length > 0 ? user.profilePictures : [user.photoURL]).slice(0, 3);
-  const [walletOpen, setWalletOpen] = useState(false);
 
   useEffect(() => {
     if (userId) {
@@ -661,7 +629,6 @@ const ProfilePage: React.FC = () => {
 
   const handleRemoveActivity = async (activityId: string) => {
     setMyActivities(myActivities.filter(a => a.id !== activityId));
-    // Backend: remove from Firestore (replace 'activities' with your collection)
     try {
       await updateDoc(doc(db, 'users', userId), {
         myActivities: arrayRemove(activityId)
@@ -669,11 +636,6 @@ const ProfilePage: React.FC = () => {
     } catch (e) {
       // Optionally show error
     }
-  };
-
-  // Handler for navigating to profile settings
-  const handleSettingsClick = () => {
-    navigate('/profile/settings');
   };
 
   const gallery = user.gallery && user.gallery.length > 0
@@ -696,40 +658,22 @@ const ProfilePage: React.FC = () => {
   return (
     <ProfileBg>
       <Header>
-        <BackArrow onClick={() => navigate(-1)}>&larr;</BackArrow>
+        <BackArrow onClick={() => navigate(-1)}>←</BackArrow>
         <NameRow>
-          <span style={{fontWeight:700, fontSize:'1.18rem'}}>{user.name}</span>
-          <GreenDot isOnline={isOnline} />
+          {user.name}
+          {user.verified && <img src={verifiedBadge} alt="Verified" style={{ width: '24px', height: '24px' }} />}
+          <GreenDot $isOnline={isOnline} />
         </NameRow>
       </Header>
       <Card>
-        <ProfileImageCarousel ref={carouselRef} onScroll={handleCarouselScroll}>
-          {profilePictures.map((img, idx) => (
-            <CarouselImage key={idx} src={img} alt={user.name + ' profile ' + (idx+1)} />
-          ))}
-        </ProfileImageCarousel>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 18 }}>
-          {profilePictures.map((_, idx) => (
-            <div key={idx} style={{ width: 12, height: 12, borderRadius: '50%', background: carouselIdx === idx ? '#222' : '#e6eaf1', transition: 'background 0.2s' }} />
-          ))}
-        </div>
-        <IconStack>
-          <AppleIconButton title="Settings" style={{position:'relative'}} onClick={handleSettingsClick}>
-            <span role="img" aria-label="settings">⚙️</span>
-            <GearBadge>16</GearBadge>
-          </AppleIconButton>
-          <AppleIconButton title="Wallet" onClick={() => setWalletOpen(true)}>
-            <span role="img" aria-label="wallet">💰</span>
-          </AppleIconButton>
-        </IconStack>
-        <WalletModal
-          open={walletOpen}
-          onClose={() => setWalletOpen(false)}
-          userId={userId}
-          coolPointsBalance={user.coolPoints}
-          onSend={() => alert('Send Cool Points (coming soon!)')}
-          onBuy={() => alert('Buy Cool Points (coming soon!)')}
-        />
+        <ProfileImageWrapper>
+          <ProfileImage src={user.photoURL} alt="Profile" />
+          <Dots>
+            {[0, 1, 2].map((index) => (
+              <Dot key={index} className={index === carouselIdx ? 'active' : ''} />
+            ))}
+          </Dots>
+        </ProfileImageWrapper>
         <InfoSection>
           <Location>{user.location}</Location>
           <NameAge>
@@ -743,16 +687,11 @@ const ProfilePage: React.FC = () => {
             <img src={coolIcon} alt="cool" style={{width:32,height:32,verticalAlign:'middle'}} />
             {user.coolPoints.toLocaleString()} Cool Points
           </CoolPointsRow>
-          <Website href={`https://${user.website}`} target="_blank" rel="noopener noreferrer">{user.website}</Website>
+          {user.website && <Website href={`https://${user.website}`} target="_blank" rel="noopener noreferrer">{user.website}</Website>}
         </InfoSection>
-        <MyNetworkBtn>
-          <NetworkIcon>🌐</NetworkIcon>
+        <MyNetworkBtn onClick={() => navigate('/mynetwork')}>
           My network
         </MyNetworkBtn>
-        <CreateActivityBtn>
-          <img src={icon} alt="blip" style={{width:32, height:32, borderRadius:8}} />
-          Create new activity
-        </CreateActivityBtn>
         <SectionCard>
           <SectionHeader>
             <SectionTitle>About me</SectionTitle>
@@ -797,37 +736,6 @@ const ProfilePage: React.FC = () => {
                   )}
                 </ActivityItem>
               ))}
-            </ActivityList>
-          )}
-        </SectionCard>
-        <SectionCard>
-          <SectionHeader>
-            <SectionTitle>Joined Activities</SectionTitle>
-            <ChevronBtn
-              aria-label={showJoinedActivities ? 'Collapse' : 'Expand'}
-              onClick={() => setShowJoinedActivities(v => !v)}
-              style={{ transform: showJoinedActivities ? 'rotate(0deg)' : 'rotate(-90deg)' }}
-            >
-              ▼
-            </ChevronBtn>
-          </SectionHeader>
-          {showJoinedActivities && (
-            <ActivityList>
-              <ActivityItem>
-                🏃‍♂️ 5K Run with Milan Runners
-                <ActivityDate>2024-06-07, 07:00</ActivityDate>
-                <ActivityOwner>by @milan_runner</ActivityOwner>
-              </ActivityItem>
-              <ActivityItem>
-                🍕 Pizza Night @ Luigi's
-                <ActivityDate>2024-06-06, 20:00</ActivityDate>
-                <ActivityOwner>by @luigi</ActivityOwner>
-              </ActivityItem>
-              <ActivityItem>
-                🎨 Art Jam Session
-                <ActivityDate>2024-06-05, 16:00</ActivityDate>
-                <ActivityOwner>by @artlover</ActivityOwner>
-              </ActivityItem>
             </ActivityList>
           )}
         </SectionCard>
