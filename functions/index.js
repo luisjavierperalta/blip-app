@@ -184,3 +184,42 @@ exports.getUserCountsByRange = onCall(async (data, context) => {
     throw new HttpsError('internal', error.message);
   }
 });
+
+// Gift Cool Point Callable Function
+exports.giftCoolPoint = onCall(async (data, context) => {
+  try {
+    const senderId = context.auth && context.auth.uid;
+    const recipientId = data.recipientId;
+    if (!senderId) throw new HttpsError('unauthenticated', 'User must be authenticated');
+    if (!recipientId || senderId === recipientId) throw new HttpsError('invalid-argument', 'Invalid recipient');
+
+    const senderRef = admin.firestore().collection('users').doc(senderId);
+    const recipientRef = admin.firestore().collection('users').doc(recipientId);
+    const senderSnap = await senderRef.get();
+    if (!senderSnap.exists) throw new HttpsError('not-found', 'Sender not found');
+    const senderData = senderSnap.data();
+    const senderBalance = senderData.coolPointsBalance || 0;
+    if (senderBalance < 1) throw new HttpsError('failed-precondition', 'Insufficient Cool Points balance');
+
+    // Use a transaction for atomicity
+    await admin.firestore().runTransaction(async (t) => {
+      // Re-fetch inside transaction
+      const freshSenderSnap = await t.get(senderRef);
+      const freshSenderBalance = (freshSenderSnap.data().coolPointsBalance || 0);
+      if (freshSenderBalance < 1) throw new HttpsError('failed-precondition', 'Insufficient Cool Points balance');
+      t.update(senderRef, { coolPointsBalance: admin.firestore.FieldValue.increment(-1) });
+      t.update(recipientRef, { coolPointsPublic: admin.firestore.FieldValue.increment(1) });
+      t.set(admin.firestore().collection('coolPointsTransactions').doc(), {
+        from: senderId,
+        to: recipientId,
+        type: 'gift',
+        amount: 1,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    });
+    return { success: true };
+  } catch (error) {
+    logger.error('Error gifting cool point:', error);
+    throw new HttpsError(error.code || 'internal', error.message);
+  }
+});

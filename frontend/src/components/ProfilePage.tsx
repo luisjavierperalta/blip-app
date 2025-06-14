@@ -719,7 +719,7 @@ const ProfilePage: React.FC = () => {
             <GearBadge>16</GearBadge>
           </AppleIconButton>
           <AppleIconButton title="Wallet" onClick={() => setWalletOpen(true)}>
-            <span role="img" aria-label="wallet">💰</span>
+            <img src="/digital-wallet.png" alt="wallet" style={{width:32, height:32}} />
           </AppleIconButton>
         </IconStack>
         <WalletModal

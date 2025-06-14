@@ -42,7 +42,7 @@ const NameRow = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 2.5rem;
+  font-size: 1.8rem;
   font-weight: 950;
   color: #222;
 `;
@@ -256,6 +256,21 @@ const MyNetworkBtn = styled.button`
     background: linear-gradient(90deg, #00b8ff 0%, #007aff 100%);
     box-shadow: 0 4px 24px rgba(30,40,80,0.13);
   }
+`;
+
+const ActionButton = styled(MyNetworkBtn)`
+  width: 48%;
+  margin: 24px 0 0 0;
+  padding: 14px 0;
+  font-size: 1.1rem;
+`;
+
+const ActionButtonsContainer = styled.div`
+  width: 98%;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
 `;
 
 const NetworkIcon = styled.span`
@@ -568,11 +583,11 @@ const CarouselImage = styled.img`
 const CoolPointsRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 12px 0 0 0;
-  font-size: 1.22rem;
-  font-weight: 700;
-  color: #007aff;
+  gap: 8px;
+  margin: 8px 0;
+  font-size: 1.18rem;
+  color: #222;
+  font-weight: 600;
 `;
 
 const ProfilePage: React.FC = () => {
@@ -661,7 +676,6 @@ const ProfilePage: React.FC = () => {
         <BackArrow onClick={() => navigate(-1)}>←</BackArrow>
         <NameRow>
           {user.name}
-          {user.verified && <img src={verifiedBadge} alt="Verified" style={{ width: '24px', height: '24px' }} />}
           <GreenDot $isOnline={isOnline} />
         </NameRow>
       </Header>
@@ -684,11 +698,23 @@ const ProfilePage: React.FC = () => {
           <div><Label>Lifestyle</Label>: <Value>{user.lifestyle}</Value></div>
           <div><Label>Looking for</Label>: <Value>{user.lookingFor}</Value></div>
           <CoolPointsRow>
-            <img src={coolIcon} alt="cool" style={{width:32,height:32,verticalAlign:'middle'}} />
+            <img 
+              src={/luis|john|mike|ryan|lucas|elija/i.test(user.name) ? '/coolboy.png' : '/coolgirl.png'} 
+              alt="cool points" 
+              style={{width: 32, height: 32, verticalAlign: 'middle'}} 
+            />
             {user.coolPoints.toLocaleString()} Cool Points
           </CoolPointsRow>
           {user.website && <Website href={`https://${user.website}`} target="_blank" rel="noopener noreferrer">{user.website}</Website>}
         </InfoSection>
+        <ActionButtonsContainer>
+          <ActionButton onClick={() => {}}>
+            Connect
+          </ActionButton>
+          <ActionButton onClick={() => {}}>
+            Message
+          </ActionButton>
+        </ActionButtonsContainer>
         <MyNetworkBtn onClick={() => navigate('/mynetwork')}>
           My network
         </MyNetworkBtn>
