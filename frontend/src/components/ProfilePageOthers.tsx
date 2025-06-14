@@ -4,8 +4,23 @@ import verifiedBadge from '../verified.png';
 import icon from '../icon.png';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { db } from '../config/firebase';
-import { doc, updateDoc, arrayRemove } from 'firebase/firestore';
+import { 
+  doc, 
+  updateDoc, 
+  arrayRemove, 
+  getDoc, 
+  query, 
+  collection, 
+  where, 
+  orderBy, 
+  limit, 
+  onSnapshot 
+} from 'firebase/firestore';
 import { subscribeToUserStatus } from '../services/presence';
+import { giftCoolPoint } from '../services/coolPoints';
+import { useAuth } from '../contexts/AuthContext';
+import WelcomeCoolPoints from './WelcomeCoolPoints';
+import CoolPointsNotification from './CoolPointsNotification';
 
 const ProfileBg = styled.div`
   min-height: 100vh;
@@ -123,12 +138,17 @@ const Dots = styled.div`
   gap: 10px;
   margin: 14px 0 18px 0;
 `;
+
 const Dot = styled.div`
   width: 10px;
   height: 10px;
   border-radius: 50%;
   background: #e6eaf1;
-  &.active { background: #222; }
+  transition: background-color 0.3s ease;
+  &.active { 
+    background: #222;
+    transform: scale(1.2);
+  }
 `;
 
 const IconStack = styled.div`
@@ -590,9 +610,90 @@ const CoolPointsRow = styled.div`
   font-weight: 600;
 `;
 
+const SendCoolPointsBtn = styled(MyNetworkBtn)`
+  width: 98%;
+  margin: 12px auto 0 auto;
+  background: linear-gradient(90deg, #FF9500 0%, #FF2D55 100%);
+  padding: 12px 0;
+  font-size: 1.1rem;
+  &:hover {
+    background: linear-gradient(90deg, #FF2D55 0%, #FF9500 100%);
+  }
+`;
+
+const CoolPointsModal = styled.div`
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 24px;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  z-index: 2001;
+  width: 90%;
+  max-width: 320px;
+`;
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 2000;
+`;
+
+const CoolPointsInput = styled.input`
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e6eaf1;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  margin: 12px 0;
+  &:focus {
+    outline: none;
+    border-color: #007aff;
+  }
+`;
+
+const ModalButtons = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+`;
+
+const ModalButton = styled.button`
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+`;
+
+const ConfirmButton = styled(ModalButton)`
+  background: #007aff;
+  color: white;
+  &:hover {
+    background: #0056b3;
+  }
+`;
+
+const CancelButton = styled(ModalButton)`
+  background: #e6eaf1;
+  color: #333;
+  &:hover {
+    background: #d1d5db;
+  }
+`;
+
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { currentUser } = useAuth();
   // Mock user data
   const user = {
     name: 'Luis Javier Peralta',
@@ -629,9 +730,17 @@ const ProfilePage: React.FC = () => {
     { id: '3', title: '🎬 Movie Night: Inception', date: '2024-06-08, 21:00' },
   ]);
   const [isOnline, setIsOnline] = useState(false);
-  const [carouselIdx, setCarouselIdx] = useState(0);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
   const profilePictures = (user.profilePictures && user.profilePictures.length > 0 ? user.profilePictures : [user.photoURL]).slice(0, 3);
+  const [showCoolPointsModal, setShowCoolPointsModal] = useState(false);
+  const [coolPointsAmount, setCoolPointsAmount] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [notification, setNotification] = useState<{
+    amount: number;
+    senderName: string;
+  } | null>(null);
 
   useEffect(() => {
     if (userId) {
@@ -641,6 +750,56 @@ const ProfilePage: React.FC = () => {
       return () => unsubscribe();
     }
   }, [userId]);
+
+  useEffect(() => {
+    const checkNewUser = async () => {
+      if (!currentUser) return;
+      
+      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        // Show welcome message if user has just received their cool points
+        if (userData.coolPointsBalance === 500 && !userData.hasSeenWelcome) {
+          setShowWelcome(true);
+          // Mark welcome as seen
+          await updateDoc(doc(db, 'users', currentUser.uid), {
+            hasSeenWelcome: true
+          });
+        }
+      }
+    };
+
+    checkNewUser();
+  }, [currentUser]);
+
+  // Subscribe to cool points transactions
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const q = query(
+      collection(db, 'coolPointsTransactions'),
+      where('to', '==', currentUser.uid),
+      orderBy('timestamp', 'desc'),
+      limit(1)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        const latestTx = snapshot.docs[0].data();
+        // Get sender's name
+        getDoc(doc(db, 'users', latestTx.from)).then((senderDoc) => {
+          if (senderDoc.exists()) {
+            setNotification({
+              amount: latestTx.amount || 1,
+              senderName: senderDoc.data().username || 'Someone'
+            });
+          }
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
 
   const handleRemoveActivity = async (activityId: string) => {
     setMyActivities(myActivities.filter(a => a.id !== activityId));
@@ -662,13 +821,51 @@ const ProfilePage: React.FC = () => {
     if (!carouselRef.current) return;
     const scrollLeft = carouselRef.current.scrollLeft;
     const width = carouselRef.current.offsetWidth;
-    const idx = Math.round(scrollLeft / width);
-    setCarouselIdx(idx);
+    const index = Math.round(scrollLeft / width);
+    setCurrentImageIndex(index);
+  };
+
+  // Handle dot click
+  const handleDotClick = (index: number) => {
+    if (!carouselRef.current) return;
+    const width = carouselRef.current.offsetWidth;
+    carouselRef.current.scrollTo({
+      left: width * index,
+      behavior: 'smooth'
+    });
   };
 
   // In the ProfilePage component, after the first LinkRow in LinksSection
   const isMan = /luis|john|mike|ryan|lucas|elija/i.test(user.name);
   const coolIcon = isMan ? '/coolboy.png' : '/coolgirl.png';
+
+  const handleSendCoolPoints = async () => {
+    if (!currentUser) {
+      alert('Please log in to send cool points');
+      return;
+    }
+
+    if (!coolPointsAmount || isNaN(Number(coolPointsAmount)) || Number(coolPointsAmount) <= 0) {
+      alert('Please enter a valid amount of cool points');
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      // Send one cool point at a time
+      for (let i = 0; i < Number(coolPointsAmount); i++) {
+        await giftCoolPoint(currentUser.uid, userId);
+      }
+      
+      setShowCoolPointsModal(false);
+      setCoolPointsAmount('');
+      alert('Cool points sent successfully!');
+    } catch (error: any) {
+      alert(error.message || 'Failed to send cool points. Please try again.');
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
     <ProfileBg>
@@ -681,12 +878,30 @@ const ProfilePage: React.FC = () => {
       </Header>
       <Card>
         <ProfileImageWrapper>
-          <ProfileImage src={user.photoURL} alt="Profile" />
+          <ProfileImageCarousel 
+            ref={carouselRef}
+            onScroll={handleCarouselScroll}
+          >
+            {profilePictures.map((image, index) => (
+              <CarouselImage
+                key={index}
+                src={image}
+                alt={`Profile ${index + 1}`}
+              />
+            ))}
+          </ProfileImageCarousel>
           <Dots>
-            {[0, 1, 2].map((index) => (
-              <Dot key={index} className={index === carouselIdx ? 'active' : ''} />
+            {profilePictures.map((_, index) => (
+              <Dot
+                key={index}
+                className={index === currentImageIndex ? 'active' : ''}
+                onClick={() => handleDotClick(index)}
+              />
             ))}
           </Dots>
+          <SendCoolPointsBtn onClick={() => setShowCoolPointsModal(true)}>
+            Send Cool Points
+          </SendCoolPointsBtn>
         </ProfileImageWrapper>
         <InfoSection>
           <Location>{user.location}</Location>
@@ -836,6 +1051,47 @@ const ProfilePage: React.FC = () => {
           </LinkList>
         </LinksSection>
       </Card>
+
+      {showCoolPointsModal && (
+        <>
+          <ModalOverlay onClick={() => setShowCoolPointsModal(false)} />
+          <CoolPointsModal>
+            <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700 }}>Send Cool Points</h3>
+            <p style={{ margin: '8px 0', color: '#666' }}>Enter the amount of cool points you want to send</p>
+            <CoolPointsInput
+              type="number"
+              value={coolPointsAmount}
+              onChange={(e) => setCoolPointsAmount(e.target.value)}
+              placeholder="Enter amount"
+              min="1"
+            />
+            <ModalButtons>
+              <CancelButton onClick={() => setShowCoolPointsModal(false)}>
+                Cancel
+              </CancelButton>
+              <ConfirmButton onClick={handleSendCoolPoints} disabled={isSending}>
+                {isSending ? 'Sending...' : 'Send'}
+              </ConfirmButton>
+            </ModalButtons>
+          </CoolPointsModal>
+        </>
+      )}
+
+      {showWelcome && (
+        <WelcomeCoolPoints
+          onClose={() => setShowWelcome(false)}
+          isMan={isMan}
+        />
+      )}
+
+      {notification && (
+        <CoolPointsNotification
+          amount={notification.amount}
+          senderName={notification.senderName}
+          onClose={() => setNotification(null)}
+          isMan={isMan}
+        />
+      )}
     </ProfileBg>
   );
 };

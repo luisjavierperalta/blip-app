@@ -43,7 +43,9 @@ exports.createUser = onCall(async (data, context) => {
       verified: false,
       profileComplete: false,
       available: true,
-      active: true
+      active: true,
+      coolPointsBalance: 500,  // Default cool points balance
+      coolPointsPublic: 0      // Public cool points start at 0
     });
 
     return {
