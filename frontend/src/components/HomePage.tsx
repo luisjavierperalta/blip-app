@@ -659,7 +659,7 @@ const HomePage: React.FC = () => {
                 <AppleBadgeStack>
                   {user.verified && <AppleVerifiedBadge src={verifiedBadge} alt="verified" />}
                   <AppleActivityIcon>
-                    {user.activity === 'Running' ? '🏃' : user.activity === 'Music Studio' ? '🎵' : user.activity === 'Cycling' ? '🚴' : user.activity === 'Reading' ? '📚' : '🎯'}
+                    {user.icon ? user.icon : (user.activity === 'Running' ? '🏃' : user.activity === 'Music Studio' ? '🎵' : user.activity === 'Cycling' ? '🚴' : user.activity === 'Reading' ? '📚' : '🎯')}
                   </AppleActivityIcon>
                 </AppleBadgeStack>
                 <AppleProfilePic src={user.photoURL || 'https://via.placeholder.com/150'} alt={user.displayName} />

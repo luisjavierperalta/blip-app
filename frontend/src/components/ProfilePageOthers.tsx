@@ -744,17 +744,17 @@ const ProfilePage: React.FC = () => {
 
   // Mock data for development
   const mockUser = {
-    name: 'Luis Javier Peralta',
-    age: 27,
-    location: 'Milan, Italy',
-    job: 'Oracle Certified Junior Software Engineer',
-    lifestyle: 'Stakhanovist',
-    coolPoints: 5467,
-    lookingFor: 'Cinema night!',
-    website: 'luisjavierperalta.com',
-    photoURL: '/IMG_20250315_193341(1)(1).png',
+    name: 'Cristina Belford',
+    age: 24,
+    location: 'New York, USA',
+    job: 'Software Engineer at NYU',
+    lifestyle: 'Tech Enthusiast',
+    coolPoints: 7890,
+    lookingFor: 'Tech meetups and coffee chats!',
+    website: 'cristinabelford.dev',
+    photoURL: '/china.png',
     profilePictures: [
-      '/IMG_20250315_193341(1)(1).png',
+      '/china.png',
       '/gallery_placeholder_1.jpg',
       '/gallery_placeholder_2.jpg',
     ],
@@ -764,13 +764,13 @@ const ProfilePage: React.FC = () => {
       '/gallery_placeholder_2.jpg',
       '/gallery_placeholder_3.jpg',
     ],
-    bio: 'Passionate about tech, hiking, and cinema. Always up for a new adventure or a deep conversation.',
-    interests: ['Hiking', 'Mountains', 'Running', 'Fashion Design', 'Photography', 'Travel', 'Tech'],
-    twitter: 'twitter.com/luisjperalta',
-    instagram: 'instagram.com/luisjperalta',
-    facebook: 'facebook.com/luisjperalta',
-    linkedin: 'linkedin.com/in/luisjperalta',
-    github: 'github.com/luisjperalta'
+    bio: 'Computer Science graduate from NYU. Passionate about AI and web development. Love exploring new coffee shops and attending tech conferences. Always up for a good coding challenge!',
+    interests: ['Artificial Intelligence', 'Web Development', 'Coffee', 'Tech Conferences', 'Photography', 'Travel', 'Hiking'],
+    twitter: 'twitter.com/cristinabelford',
+    instagram: 'instagram.com/cristinabelford',
+    facebook: 'facebook.com/cristinabelford',
+    linkedin: 'linkedin.com/in/cristinabelford',
+    github: 'github.com/cristinabelford'
   };
 
   // All useEffect hooks

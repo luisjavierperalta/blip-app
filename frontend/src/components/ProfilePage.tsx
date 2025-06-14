@@ -7,6 +7,7 @@ import { db } from '../config/firebase';
 import { doc, updateDoc, arrayRemove } from 'firebase/firestore';
 import { subscribeToUserStatus } from '../services/presence';
 import WalletModal from './WalletModal';
+import ActivityCreateModal from './ActivityCreateModal';
 
 const ProfileBg = styled.div`
   min-height: 100vh;
@@ -48,11 +49,11 @@ const NameRow = styled.div`
   color: #222;
 `;
 
-const GreenDot = styled.span`
+const GreenDot = styled.span<{ $isOnline: boolean }>`
   display: inline-block;
   width: 12px;
   height: 12px;
-  background: ${props => props.isOnline ? '#00e676' : '#ff3b30'};
+  background: ${props => props.$isOnline ? '#00e676' : '#ff3b30'};
   border-radius: 50%;
   margin-left: 4px;
   animation: pulse 1.5s infinite;
@@ -630,6 +631,7 @@ const ProfilePage: React.FC = () => {
       '/gallery_placeholder_2.jpg',
       '/gallery_placeholder_3.jpg',
     ], // TODO: Replace with real data from Firestore
+    bio: 'Passionate about tech, hiking, and cinema. Always up for a new adventure or a deep conversation.'
   };
 
   const [showMyActivities, setShowMyActivities] = useState(true);
@@ -649,6 +651,7 @@ const ProfilePage: React.FC = () => {
   const carouselRef = useRef<HTMLDivElement>(null);
   const profilePictures = (user.profilePictures && user.profilePictures.length > 0 ? user.profilePictures : [user.photoURL]).slice(0, 3);
   const [walletOpen, setWalletOpen] = useState(false);
+  const [showActivityModal, setShowActivityModal] = useState(false);
 
   useEffect(() => {
     if (userId) {
@@ -693,13 +696,19 @@ const ProfilePage: React.FC = () => {
   const isMan = /luis|john|mike|ryan|lucas|elija/i.test(user.name);
   const coolIcon = isMan ? '/coolboy.png' : '/coolgirl.png';
 
+  const handlePublishActivity = (activity: { name: string; type: string; location: string; desc: string; files: File[] }) => {
+    // TODO: Save to Firestore and set user as live/available
+    console.log('Activity published:', activity);
+    // Optionally update state/UI here
+  };
+
   return (
     <ProfileBg>
       <Header>
         <BackArrow onClick={() => navigate(-1)}>&larr;</BackArrow>
         <NameRow>
           <span style={{fontWeight:700, fontSize:'1.18rem'}}>{user.name}</span>
-          <GreenDot isOnline={isOnline} />
+          <GreenDot $isOnline={isOnline} />
         </NameRow>
       </Header>
       <Card>
@@ -749,7 +758,7 @@ const ProfilePage: React.FC = () => {
           <NetworkIcon>🌐</NetworkIcon>
           My network
         </MyNetworkBtn>
-        <CreateActivityBtn>
+        <CreateActivityBtn onClick={() => setShowActivityModal(true)}>
           <img src={icon} alt="blip" style={{width:32, height:32, borderRadius:8}} />
           Create new activity
         </CreateActivityBtn>
@@ -902,6 +911,11 @@ const ProfilePage: React.FC = () => {
           </LinkList>
         </LinksSection>
       </Card>
+      <ActivityCreateModal
+        open={showActivityModal}
+        onClose={() => setShowActivityModal(false)}
+        onPublish={handlePublishActivity}
+      />
     </ProfileBg>
   );
 };
