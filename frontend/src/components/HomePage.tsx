@@ -19,6 +19,7 @@ import { FiBell } from 'react-icons/fi';
 import NotificationCenter from './NotificationCenter';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../config/firebase';
+import Modal from 'react-modal';
 
 export const users = [
   {
@@ -114,6 +115,12 @@ const mockusers = [
     distance: '150m',
     verified: true
   }
+];
+
+const mockActivityPhotos = [
+  '/gallery_placeholder_1.jpg',
+  '/gallery_placeholder_2.jpg',
+  '/gallery_placeholder_3.jpg',
 ];
 
 const GlobalStyle = createGlobalStyle`
@@ -477,14 +484,15 @@ const NavBtn = styled.button<{active?: boolean}>`
   background: ${p => p.active ? 'rgba(255,102,0,0.12)' : 'transparent'};
   border: 2px solid ${p => p.active ? '#ff6600' : 'transparent'};
   color: ${p => p.active ? '#ff6600' : '#888'};
-  font-size: 1.7rem;
+  font-size: 2.1rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  text-align: center;
   position: relative;
-  border-radius: 22px;
-  padding: 6px 18px 2px 18px;
+  border-radius: 28px;
+  padding: 16px 28px 8px 28px;
   transition: background 0.18s, color 0.18s, box-shadow 0.18s, transform 0.18s, border 0.18s;
   font-weight: 700;
   box-shadow: ${p => p.active ? '0 2px 8px rgba(255,102,0,0.10)' : 'none'};
@@ -505,9 +513,10 @@ const NavBtn = styled.button<{active?: boolean}>`
 `;
 
 const NavLabel = styled.div`
-  font-size: 0.92rem;
-  margin-top: 2px;
-  font-weight: 700;
+  font-size: 1.25rem;
+  margin-top: 6px;
+  font-weight: 800;
+  text-align: center;
   color: #111;
 `;
 
@@ -536,6 +545,36 @@ const RealisticActivityIcon = ({ activity }: { activity: string }) => {
   return <img src={randomIcon} alt={activity} style={{ width: 24, height: 24 }} />;
 };
 
+// Utility to calculate distance in meters between two lat/lon points
+function getDistanceFromLatLonInMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371e3; // metres
+  const φ1 = lat1 * Math.PI/180;
+  const φ2 = lat2 * Math.PI/180;
+  const Δφ = (lat2-lat1) * Math.PI/180;
+  const Δλ = (lon2-lon1) * Math.PI/180;
+  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const d = R * c;
+  return d;
+}
+
+const Tooltip = styled.div`
+  position: absolute;
+  background: #222;
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  z-index: 100;
+  top: 28px;
+  left: 0;
+  box-shadow: 0 2px 8px rgba(30,40,80,0.12);
+`;
+
 const HomePage: React.FC = () => {
   const [filter, setFilter] = useState<'300m' | '25km' | '1000km'>('300m');
   const [hubOpen, setHubOpen] = useState(false);
@@ -549,6 +588,11 @@ const HomePage: React.FC = () => {
   const [currentLat, setCurrentLat] = useState<number | null>(null);
   const [currentLon, setCurrentLon] = useState<number | null>(null);
   const [userCounts, setUserCounts] = useState<{ available: number; active: number }>({ available: 0, active: 0 });
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [showActivityCarousel, setShowActivityCarousel] = useState(false);
+  const [carouselIdx, setCarouselIdx] = useState(0);
+  const [userDistances, setUserDistances] = useState<{ [uid: string]: number }>({});
+  const [showFeedDotTooltip, setShowFeedDotTooltip] = useState(false);
 
   // Fetch current user's location
   useEffect(() => {
@@ -613,6 +657,18 @@ const HomePage: React.FC = () => {
     fetchCounts();
   }, [filter, currentLat, currentLon]);
 
+  // Update distances in real-time as current user moves
+  useEffect(() => {
+    if (!currentLat || !currentLon) return;
+    const newDistances: { [uid: string]: number } = {};
+    users.forEach((user: any) => {
+      if (user.location && user.location.latitude && user.location.longitude) {
+        newDistances[user.uid] = getDistanceFromLatLonInMeters(currentLat, currentLon, user.location.latitude, user.location.longitude);
+      }
+    });
+    setUserDistances(newDistances);
+  }, [currentLat, currentLon, users]);
+
   // Define filter radius in meters
   const filterRadius = filter === '300m' ? 300 : filter === '25km' ? 25000 : 1000000;
 
@@ -645,7 +701,16 @@ const HomePage: React.FC = () => {
             <WelcomeSub>Find new friends now, in real-time</WelcomeSub>
             <SectionTitleRow>
               <SectionTitle>Live Activity Feed</SectionTitle>
-              <GreenDot isOnline={currentUser?.isOnline || false} />
+              <div style={{ position: 'relative', display: 'inline-block' }}
+                onMouseEnter={() => setShowFeedDotTooltip(true)}
+                onMouseLeave={() => setShowFeedDotTooltip(false)}>
+                <GreenDot isOnline={currentUser?.isOnline || false} />
+                {showFeedDotTooltip && (
+                  <Tooltip>
+                    {currentUser?.isOnline ? 'Online' : 'Offline'}
+                  </Tooltip>
+                )}
+              </div>
             </SectionTitleRow>
           </GlassSection>
           <FilterRow>
@@ -654,77 +719,184 @@ const HomePage: React.FC = () => {
             <FilterBtn active={filter==='1000km'} onClick={()=>setFilter('1000km')}>EU-wide (1000km)</FilterBtn>
           </FilterRow>
           <AppleGrid>
-            {mockusers.map((user) => (
-              <AppleUserCell key={user.uid}>
-                <AppleBadgeStack>
-                  {user.verified && <AppleVerifiedBadge src={verifiedBadge} alt="verified" />}
-                  <AppleActivityIcon>
-                    {user.icon ? user.icon : (user.activity === 'Running' ? '🏃' : user.activity === 'Music Studio' ? '🎵' : user.activity === 'Cycling' ? '🚴' : user.activity === 'Reading' ? '📚' : '🎯')}
-                  </AppleActivityIcon>
-                </AppleBadgeStack>
-                <AppleProfilePic src={user.photoURL || 'https://via.placeholder.com/150'} alt={user.displayName} />
-                <AppleInfo>
-                  <AppleNameAge>{user.displayName}, {user.age}</AppleNameAge>
-                  <AppleDistance>{user.distance || 'Unknown distance'}</AppleDistance>
-                  <AppleActivity>Activity: {user.activity || 'No activity'}</AppleActivity>
-                </AppleInfo>
-              </AppleUserCell>
-            ))}
+            {mockusers.map((user) => {
+              // Use real-time distance if available, else fallback to mock
+              let realtimeDistance = userDistances[user.uid];
+              let distanceStr = realtimeDistance !== undefined
+                ? (realtimeDistance < 1000 ? `${Math.round(realtimeDistance)}m` : `${(realtimeDistance/1000).toFixed(1)}km`)
+                : (user.distance || 'Unknown distance');
+              return (
+                <AppleUserCell key={user.uid} onClick={() => setSelectedUser(user)} style={{ cursor: 'pointer' }}>
+                  <AppleBadgeStack>
+                    {user.verified && <AppleVerifiedBadge src={verifiedBadge} alt="verified" />}
+                    <GreenDot isOnline={user.verified} />
+                    <AppleActivityIcon>
+                      {user.icon ? user.icon : (user.activity === 'Running' ? '🏃' : user.activity === 'Music Studio' ? '🎵' : user.activity === 'Cycling' ? '🚴' : user.activity === 'Reading' ? '📚' : '🎯')}
+                    </AppleActivityIcon>
+                  </AppleBadgeStack>
+                  <AppleProfilePic src={user.photoURL || 'https://via.placeholder.com/150'} alt={user.displayName} />
+                  <AppleInfo>
+                    <AppleNameAge>{user.displayName}, {user.age}</AppleNameAge>
+                    <AppleActivity>Activity: {user.activity || 'No activity'}</AppleActivity>
+                    <AppleDistance>{distanceStr}</AppleDistance>
+                  </AppleInfo>
+                </AppleUserCell>
+              );
+            })}
           </AppleGrid>
           
-          <BottomNav>
-            <NavBtn active={location.pathname === '/home'} onClick={() => navigate('/home')}>
-              <HomeIcon active={location.pathname === '/home'} />
-              <NavLabel>Home</NavLabel>
-            </NavBtn>
-            <NavBtn active={location.pathname === '/map'} onClick={() => navigate('/map')}>
-              <div style={{ position: 'relative' }}>
-                <MapIcon active={location.pathname === '/map'} />
-                {(userCounts.available > 0 || userCounts.active > 0) && (
-                  <NotificationBadge style={{
-                    top: -8,
-                    right: -8,
-                    background: '#1ecb83',
-                    color: 'white',
-                    minWidth: 22,
-                    height: 22,
-                    fontSize: '0.85rem',
-                    borderRadius: 11,
-                    border: '2px solid white',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'absolute',
-                    zIndex: 2
-                  }}>
-                    {userCounts.available}/{userCounts.active}
-                  </NotificationBadge>
-                )}
-              </div>
-              <NavLabel>Map</NavLabel>
-            </NavBtn>
-            <NavBtn active={location.pathname === '/search'} onClick={() => navigate('/search')}>
-              <SearchIcon active={location.pathname === '/search'} />
-              <NavLabel>Search</NavLabel>
-            </NavBtn>
-            <NavBtn active={location.pathname === '/messages'} onClick={() => navigate('/messages')}>
-              <MessageIcon active={location.pathname === '/messages'} />
-              <NavLabel>Messages</NavLabel>
-            </NavBtn>
-          </BottomNav>
+          <NavMenuWrapper>
+            <BottomNav>
+              <NavBtn active={location.pathname === '/home'} onClick={() => navigate('/home')} style={{ marginLeft: 8, marginRight: -16 }}>
+                <HomeIcon active={location.pathname === '/home'} />
+                <NavLabel>Home</NavLabel>
+              </NavBtn>
+              <NavBtn active={location.pathname === '/map'} onClick={() => navigate('/map')}>
+                <div style={{ position: 'relative' }}>
+                  <MapIcon active={location.pathname === '/map'} />
+                  {(userCounts.available > 0 || userCounts.active > 0) && (
+                    <NotificationBadge style={{
+                      top: -8,
+                      right: -8,
+                      background: '#1ecb83',
+                      color: 'white',
+                      minWidth: 22,
+                      height: 22,
+                      fontSize: '0.85rem',
+                      borderRadius: 11,
+                      border: '2px solid white',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'absolute',
+                      zIndex: 2
+                    }}>
+                      {userCounts.available}/{userCounts.active}
+                    </NotificationBadge>
+                  )}
+                </div>
+                <NavLabel>Map</NavLabel>
+              </NavBtn>
+              <NavBtn active={location.pathname === '/search'} onClick={() => navigate('/search')}>
+                <SearchIcon active={location.pathname === '/search'} />
+                <NavLabel>Search</NavLabel>
+              </NavBtn>
+              <NavBtn active={location.pathname === '/messages'} onClick={() => navigate('/messages')} style={{ marginRight: 8, marginLeft: -16 }}>
+                <MessageIcon active={location.pathname === '/messages'} />
+                <NavLabel>Messages</NavLabel>
+              </NavBtn>
+            </BottomNav>
+          </NavMenuWrapper>
         </GlassMain>
       </GlassContainer>
       {showSearch && <SearchPage onClose={() => setShowSearch(false)} />}
       {showNotifications && (
         <NotificationCenter onClose={() => setShowNotifications(false)} />
       )}
+      {/* Modal for user cell */}
+      <Modal
+        isOpen={!!selectedUser}
+        onRequestClose={() => setSelectedUser(null)}
+        style={{
+          overlay: { backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 1000 },
+          content: {
+            top: '50%', left: '50%', right: 'auto', bottom: 'auto',
+            marginRight: '-50%', transform: 'translate(-50%, -50%)',
+            borderRadius: '32px', padding: 0, border: 'none', background: 'none',
+            maxWidth: 540, width: '98vw', minHeight: 440, overflow: 'visible',
+            boxShadow: '0 12px 48px 0 rgba(30,40,80,0.22)',
+          }
+        }}
+        ariaHideApp={false}
+      >
+        {selectedUser && (
+          <div style={{ background: '#222', borderRadius: 32, padding: 0, position: 'relative', boxShadow: '0 12px 48px 0 rgba(30,40,80,0.22)', minWidth: 420 }}>
+            {/* Close button */}
+            <button onClick={() => setSelectedUser(null)} style={{ position: 'absolute', top: 18, right: 24, background: 'none', border: 'none', color: '#fff', fontSize: 32, cursor: 'pointer', zIndex: 2 }}>×</button>
+            {/* Preview row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 22, padding: '32px 32px 12px 32px' }}>
+              <img src={selectedUser.photoURL} alt={selectedUser.displayName} style={{ width: 80, height: 80, borderRadius: 22, objectFit: 'cover', border: '2.5px solid #fff' }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ color: '#fff', fontWeight: 800, fontSize: 20 }}>{selectedUser.displayName}, {selectedUser.age}</span>
+                  {selectedUser.verified && <img src={verifiedBadge} alt="verified" style={{ width: 28, height: 28, marginLeft: 2 }} />}
+                  <GreenDot isOnline={selectedUser.verified} style={{ marginLeft: 6 }} />
+                </div>
+                <div style={{ color: '#1ecb83', fontWeight: 700, fontSize: 18, marginTop: 2 }}>{selectedUser.activity ? `Activity : ${selectedUser.activity}` : ''}</div>
+                {/* Real-time distance below activity (no dot) */}
+                <div style={{ color: '#fff', fontWeight: 500, fontSize: 16, marginTop: 4 }}>
+                  {userDistances[selectedUser.uid] !== undefined
+                    ? (userDistances[selectedUser.uid] < 1000
+                        ? `${Math.round(userDistances[selectedUser.uid])}m`
+                        : `${(userDistances[selectedUser.uid]/1000).toFixed(1)}km`)
+                    : (selectedUser.distance || '100m')}
+                </div>
+                <div style={{ color: '#fff', fontWeight: 500, fontSize: 15, marginTop: 2 }}>Milan, Italy</div>
+              </div>
+            </div>
+            {/* Cool points row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 32px 0 32px', marginBottom: 10, marginTop: 8 }}>
+              <img src="/coolboy.png" alt="cool" style={{ width: 34, height: 34, borderRadius: 10 }} />
+              <span style={{ color: '#1ecb83', fontWeight: 700, fontSize: 22 }}>525 cool points</span>
+            </div>
+            {/* Buttons row - stretch to fit, symmetrical */}
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 18, margin: '28px 0 0 0', padding: '0 32px' }}>
+              <button style={{ flex: 1, background: 'linear-gradient(90deg,#007aff 0%,#1ecb83 100%)', color: '#fff', fontWeight: 700, fontSize: 18, border: 'none', borderRadius: 18, padding: '18px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer', minWidth: 0, maxWidth: 'none' }}>
+                <span role="img" aria-label="Meet Now">👥</span> Meet Now
+              </button>
+              <button style={{ flex: 1, background: 'linear-gradient(90deg,#1ecb83 0%,#00b8ff 100%)', color: '#fff', fontWeight: 700, fontSize: 18, border: 'none', borderRadius: 18, padding: '18px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer', minWidth: 0, maxWidth: 'none' }}>
+                <span role="img" aria-label="Send Cool Points">💎</span> Send Cool
+              </button>
+              <button onClick={() => setShowActivityCarousel(true)} style={{ flex: 1, background: 'linear-gradient(90deg,#ff6600 0%,#ffb300 100%)', color: '#fff', fontWeight: 700, fontSize: 18, border: 'none', borderRadius: 18, padding: '18px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer', minWidth: 0, maxWidth: 'none' }}>
+                <img src={icon} alt="activity" style={{ width: 28, height: 28, borderRadius: 7 }} /> Activity
+              </button>
+            </div>
+            {/* Info text */}
+            <div style={{ color: '#fff', fontWeight: 600, fontSize: 16, textAlign: 'center', margin: '28px 0 0 0', padding: '0 32px' }}>
+              Click! Meet Now for sending real-time request
+            </div>
+            <div style={{ color: '#ff3b30', fontWeight: 700, fontSize: 15, textAlign: 'center', margin: '10px 0 24px 0', padding: '0 32px' }}>
+              REQUIRED APPROVED REQUEST TO UNLOCK<br />Chat & Messaging locked<br />Joining Activities locked<br />P2P real-time location locked
+            </div>
+          </div>
+        )}
+      </Modal>
+      {/* Activity carousel overlay */}
+      <Modal
+        isOpen={showActivityCarousel}
+        onRequestClose={() => setShowActivityCarousel(false)}
+        style={{
+          overlay: { backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 1100 },
+          content: {
+            top: '50%', left: '50%', right: 'auto', bottom: 'auto',
+            marginRight: '-50%', transform: 'translate(-50%, -50%)',
+            borderRadius: '24px', padding: 0, border: 'none', background: 'none',
+            maxWidth: 340, width: '95vw', minHeight: 340, overflow: 'visible',
+          }
+        }}
+        ariaHideApp={false}
+      >
+        <div style={{ background: '#fff', borderRadius: 24, padding: 0, position: 'relative', boxShadow: '0 8px 40px 0 rgba(30,40,80,0.18)' }}>
+          <button onClick={() => setShowActivityCarousel(false)} style={{ position: 'absolute', top: 10, right: 16, background: 'none', border: 'none', color: '#222', fontSize: 28, cursor: 'pointer', zIndex: 2 }}>×</button>
+          <div style={{ width: '100%', height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderRadius: 18, margin: '24px 0 0 0' }}>
+            <img src={mockActivityPhotos[carouselIdx]} alt={`Activity ${carouselIdx + 1}`} style={{ width: '90%', height: '100%', objectFit: 'cover', borderRadius: 18, boxShadow: '0 2px 12px rgba(30,40,80,0.10)' }} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, margin: '18px 0 0 0' }}>
+            {mockActivityPhotos.map((_, idx) => (
+              <div key={idx} onClick={() => setCarouselIdx(idx)} style={{ width: 12, height: 12, borderRadius: '50%', background: carouselIdx === idx ? '#ff6600' : '#e6eaf1', cursor: 'pointer', transition: 'background 0.2s' }} />
+            ))}
+          </div>
+          <div style={{ color: '#222', fontWeight: 700, fontSize: 15, textAlign: 'center', margin: '18px 0 18px 0' }}>
+            Activity Photos
+          </div>
+        </div>
+      </Modal>
     </>
   );
 };
 
-const BellIconWrapper = styled.div`
-  position: relative;
+const BellIconWrapper = styled.div`  position: relative;
   cursor: pointer;
   padding: 8px;
   border-radius: 50%;
