@@ -1035,8 +1035,8 @@ const ProfilePage: React.FC = () => {
                 src={image}
                 alt={`Profile ${index + 1}`}
               />
-            ))}
-          </ProfileImageCarousel>
+          ))}
+        </ProfileImageCarousel>
           <Dots>
             {user.profilePictures.map((_, index: number) => (
               <Dot
@@ -1044,7 +1044,7 @@ const ProfilePage: React.FC = () => {
                 className={index === currentImageIndex ? 'active' : ''}
                 onClick={() => handleDotClick(index)}
               />
-            ))}
+          ))}
           </Dots>
           <SendCoolPointsBtn onClick={() => setShowCoolPointsModal(true)}>
             Send Cool Points
@@ -1172,9 +1172,9 @@ const ProfilePage: React.FC = () => {
               if (key.startsWith('https://') && key !== user.website) {
                 return (
                   <LinkRow key={key} href={key} target="_blank" rel="noopener noreferrer">
-                    <LinkIcon>🌐</LinkIcon>
+              <LinkIcon>🌐</LinkIcon>
                     <LinkUrl>{value}</LinkUrl>
-                  </LinkRow>
+            </LinkRow>
                 );
               }
               return null;
@@ -1187,8 +1187,8 @@ const ProfilePage: React.FC = () => {
         <>
           <ModalOverlay onClick={() => setShowCoolPointsModal(false)} />
           <CoolPointsModal>
-            <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700 }}>Send Cool Points</h3>
-            <p style={{ margin: '8px 0', color: '#666' }}>Enter the amount of cool points you want to send</p>
+            <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700 }}>Send Cool Points to {user.name}</h3>
+            <p style={{ margin: '8px 0', color: '#666' }}>Enter the amount of cool points you want to send directly to this user</p>
             <CoolPointsInput
               type="number"
               value={coolPointsAmount}

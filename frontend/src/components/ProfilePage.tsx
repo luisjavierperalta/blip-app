@@ -6,7 +6,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { db } from '../config/firebase';
 import { doc, updateDoc, arrayRemove } from 'firebase/firestore';
 import { subscribeToUserStatus } from '../services/presence';
-import WalletModal from './WalletModal';
+import CoolPointsWallet from './CoolPointsWallet';
 import ActivityCreateModal from './ActivityCreateModal';
 
 const ProfileBg = styled.div`
@@ -650,7 +650,7 @@ const ProfilePage: React.FC = () => {
   const [carouselIdx, setCarouselIdx] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
   const profilePictures = (user.profilePictures && user.profilePictures.length > 0 ? user.profilePictures : [user.photoURL]).slice(0, 3);
-  const [walletOpen, setWalletOpen] = useState(false);
+  const [showCoolPointsWallet, setShowCoolPointsWallet] = useState(false);
   const [showActivityModal, setShowActivityModal] = useState(false);
 
   useEffect(() => {
@@ -707,7 +707,7 @@ const ProfilePage: React.FC = () => {
       <Header>
         <BackArrow onClick={() => navigate(-1)}>&larr;</BackArrow>
         <NameRow>
-          <span style={{fontWeight:700, fontSize:'1.18rem'}}>{user.name}</span>
+          <span style={{fontWeight:700, fontSize:'2rem'}}>{user.name}</span>
           <GreenDot $isOnline={isOnline} />
         </NameRow>
       </Header>
@@ -727,17 +727,13 @@ const ProfilePage: React.FC = () => {
             <span role="img" aria-label="settings">⚙️</span>
             <GearBadge>16</GearBadge>
           </AppleIconButton>
-          <AppleIconButton title="Wallet" onClick={() => setWalletOpen(true)}>
+          <AppleIconButton title="Wallet" onClick={() => setShowCoolPointsWallet(true)}>
             <img src="/digital-wallet.png" alt="wallet" style={{width:32, height:32}} />
           </AppleIconButton>
         </IconStack>
-        <WalletModal
-          open={walletOpen}
-          onClose={() => setWalletOpen(false)}
-          userId={userId}
-          coolPointsBalance={user.coolPoints}
-          onSend={() => alert('Send Cool Points (coming soon!)')}
-          onBuy={() => alert('Buy Cool Points (coming soon!)')}
+        <CoolPointsWallet
+          isOpen={showCoolPointsWallet}
+          onClose={() => setShowCoolPointsWallet(false)}
         />
         <InfoSection>
           <Location>{user.location}</Location>

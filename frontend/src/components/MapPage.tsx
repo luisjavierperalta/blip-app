@@ -5,6 +5,7 @@ import MessageButton from './MessageButton';
 import { collection, query, where, getDocs, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useLocation } from 'react-router-dom';
 
 // Set your access token
 mapboxgl.accessToken = 'pk.eyJ1IjoibHVpc2phdmllcnBlcmFsdGEiLCJhIjoiY21ic29rdmEwMG56MzJsc2RoeXQxNGh0YyJ9.QNMq88qX9wiOSsOEZHFfMw';
@@ -84,6 +85,10 @@ const MapPage = () => {
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const [filter, setFilter] = useState<'300m' | '25km' | '1000km'>('300m');
   const [currentLocation, setCurrentLocation] = useState<{latitude: number, longitude: number} | null>(null);
+  const location = useLocation();
+  const [routeDistance, setRouteDistance] = useState<number | null>(null);
+  const polylineId = 'private-route-polyline';
+  const distanceLabelId = 'private-route-distance-label';
 
   // Fetch nearby users from Firebase
   useEffect(() => {
@@ -273,6 +278,76 @@ const MapPage = () => {
     });
   }
 
+  // Helper to draw or update the orange polyline
+  function drawPrivateRoute(map, start, end) {
+    // Remove existing polyline if any
+    if (map.getSource(polylineId)) {
+      map.removeLayer(polylineId);
+      map.removeSource(polylineId);
+    }
+    const lineGeoJSON = {
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [start.lng, start.lat],
+          [end.lng, end.lat]
+        ]
+      }
+    };
+    map.addSource(polylineId, {
+      type: 'geojson',
+      data: lineGeoJSON
+    });
+    map.addLayer({
+      id: polylineId,
+      type: 'line',
+      source: polylineId,
+      layout: {
+        'line-join': 'round',
+        'line-cap': 'round'
+      },
+      paint: {
+        'line-color': '#ff6600',
+        'line-width': 6,
+        'line-opacity': 0.95
+      }
+    });
+    // Calculate and set distance
+    const d = getDistanceFromLatLonInMeters(start.lat, start.lng, end.lat, end.lng);
+    setRouteDistance(d);
+  }
+
+  // Real-time polyline update effect
+  useEffect(() => {
+    if (!map.current) return;
+    const state = location.state as any;
+    if (state && state.showPrivateRoute && state.routeData) {
+      // Listen for geolocation updates
+      let watchId: number | null = null;
+      function updateRoute(pos) {
+        const { latitude, longitude } = pos.coords;
+        const start = { lat: latitude, lng: longitude };
+        const end = state.routeData.end;
+        drawPrivateRoute(map.current!, start, end);
+      }
+      if (navigator.geolocation) {
+        watchId = navigator.geolocation.watchPosition(updateRoute, undefined, { enableHighAccuracy: true });
+        // Draw initial route from last known location
+        if (currentLocation) {
+          drawPrivateRoute(map.current, { lat: currentLocation.latitude, lng: currentLocation.longitude }, state.routeData.end);
+        }
+      }
+      return () => {
+        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+        if (map.current && map.current.getSource(polylineId)) {
+          map.current.removeLayer(polylineId);
+          map.current.removeSource(polylineId);
+        }
+      };
+    }
+  }, [location.state, currentLocation]);
+
   return (
     <div style={{ width: '100%', height: '100vh', position: 'relative' }}>
       <FilterBar>
@@ -281,6 +356,26 @@ const MapPage = () => {
         <FilterBtn active={filter==='1000km'} onClick={()=>setFilter('1000km')}>EU-wide (1000km)</FilterBtn>
       </FilterBar>
       <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
+      {routeDistance !== null && (
+        <div style={{
+          position: 'absolute',
+          top: 80,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#ff6600',
+          color: '#fff',
+          padding: '8px 18px',
+          borderRadius: 18,
+          fontWeight: 700,
+          fontSize: '1.1rem',
+          boxShadow: '0 2px 8px rgba(255,102,0,0.18)',
+          zIndex: 20
+        }}>
+          {routeDistance < 1000
+            ? `${Math.round(routeDistance)} m to destination`
+            : `${(routeDistance/1000).toFixed(2)} km to destination`}
+        </div>
+      )}
       {error && (
         <div style={{
           position: 'absolute',

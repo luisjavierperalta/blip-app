@@ -20,6 +20,8 @@ import NotificationCenter from './NotificationCenter';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../config/firebase';
 import Modal from 'react-modal';
+import { FaUserFriends, FaWallet, FaRunning } from 'react-icons/fa';
+import CoolPointsWallet from './CoolPointsWallet';
 
 export const users = [
   {
@@ -148,6 +150,10 @@ const GlobalStyle = createGlobalStyle`
   body {
     font-family: 'Interstate', Arial, Helvetica, sans-serif;
     background: #e6eaf1;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
   }
 `;
 
@@ -575,6 +581,34 @@ const Tooltip = styled.div`
   box-shadow: 0 2px 8px rgba(30,40,80,0.12);
 `;
 
+const ModalIcon = styled.div`
+  font-size: 2.8rem;
+  color: #ff6600;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,102,0,0.08);
+  width: 80px;
+  height: 80px;
+  border-radius: 24px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(255,102,0,0.12);
+  &:hover {
+    transform: scale(1.05);
+    background: rgba(255,102,0,0.12);
+    box-shadow: 0 6px 16px rgba(255,102,0,0.15);
+  }
+`;
+
+const ModalIconLabel = styled.div`
+  font-size: 1.1rem;
+  color: #333;
+  font-weight: 600;
+  margin-top: 8px;
+  text-align: center;
+`;
+
 const HomePage: React.FC = () => {
   const [filter, setFilter] = useState<'300m' | '25km' | '1000km'>('300m');
   const [hubOpen, setHubOpen] = useState(false);
@@ -593,6 +627,28 @@ const HomePage: React.FC = () => {
   const [carouselIdx, setCarouselIdx] = useState(0);
   const [userDistances, setUserDistances] = useState<{ [uid: string]: number }>({});
   const [showFeedDotTooltip, setShowFeedDotTooltip] = useState(false);
+  const [showActivityInfo, setShowActivityInfo] = useState(false);
+  const [activityInfo, setActivityInfo] = useState<any>(null);
+  const [isJoiningActivity, setIsJoiningActivity] = useState(false);
+  const [joinRequestStatus, setJoinRequestStatus] = useState<'idle' | 'pending' | 'approved' | 'rejected'>('idle');
+  const [joinRequestId, setJoinRequestId] = useState<string | null>(null);
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [timeLeft, setTimeLeft] = useState<number>(25 * 60);
+  const [isExpired, setIsExpired] = useState(false);
+  const [showCoolPointsWallet, setShowCoolPointsWallet] = useState(false);
+  const [showMeetNowModal, setShowMeetNowModal] = useState(false);
+  const [meetNowStatus, setMeetNowStatus] = useState<'idle' | 'pending' | 'approved' | 'rejected'>('idle');
+  const [meetNowRequestId, setMeetNowRequestId] = useState<string | null>(null);
+  const [meetNowLoading, setMeetNowLoading] = useState(false);
+  const [meetNowTimeLeft, setMeetNowTimeLeft] = useState(25 * 60);
+  const [meetNowExpired, setMeetNowExpired] = useState(false);
+  
+  // Add mock photos for development
+  const mockPhotos = [
+    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800&auto=format&fit=crop&q=60'
+  ];
 
   // Fetch current user's location
   useEffect(() => {
@@ -680,6 +736,176 @@ const HomePage: React.FC = () => {
     const distance = getDistanceFromLatLonInMeters(currentLat, currentLon, userLat, userLon);
     return distance <= filterRadius;
   });
+
+  // Add function to check request status
+  const checkRequestStatus = async (requestId: string) => {
+    try {
+      const checkJoinRequest = httpsCallable(functions, 'checkJoinRequest');
+      const result = await checkJoinRequest({ requestId });
+      const status = result.data.status;
+      
+      if (status === 'approved') {
+        setJoinRequestStatus('approved');
+        // Close modal and redirect to map
+        setShowActivityInfo(false);
+        navigate('/map', { 
+          state: { 
+            showPrivateRoute: true,
+            routeData: result.data.routeData,
+            activityInfo: activityInfo
+          }
+        });
+      } else if (status === 'rejected') {
+        setJoinRequestStatus('rejected');
+      }
+    } catch (error) {
+      console.error('Error checking request status:', error);
+    }
+  };
+
+  // Add function to format time
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  // Update handleJoinActivity function
+  const handleJoinActivity = async () => {
+    if (!activityInfo || !selectedUser) return;
+    
+    setIsJoiningActivity(true);
+    setTimeLeft(25 * 60);
+    setIsExpired(false);
+    
+    try {
+      const joinActivity = httpsCallable(functions, 'joinActivity');
+      const result = await joinActivity({ 
+        activityId: activityInfo.id,
+        userId: selectedUser.uid,
+        currentUserLocation: {
+          latitude: currentLat,
+          longitude: currentLon
+        }
+      });
+      
+      setJoinRequestId(result.data.requestId);
+      setJoinRequestStatus('pending');
+      
+      // Start polling for request status
+      const pollInterval = setInterval(async () => {
+        if (joinRequestId) {
+          await checkRequestStatus(joinRequestId);
+        }
+      }, 3000);
+
+      // Start countdown timer
+      const timerInterval = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 0) {
+            clearInterval(timerInterval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      // Handle expiration after 25 minutes
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        clearInterval(timerInterval);
+        if (joinRequestStatus === 'pending') {
+          setIsExpired(true);
+          setJoinRequestStatus('rejected');
+        }
+      }, 25 * 60 * 1000);
+
+    } catch (error) {
+      console.error('Error joining activity:', error);
+      alert('Failed to join activity. Please try again.');
+    } finally {
+      setIsJoiningActivity(false);
+    }
+  };
+
+  const handleSendMeetNow = async () => {
+    if (!selectedUser || !currentLat || !currentLon) return;
+    setMeetNowLoading(true);
+    setMeetNowStatus('pending');
+    setMeetNowTimeLeft(25 * 60);
+    setMeetNowExpired(false);
+    try {
+      // Call a cloud function to send a Meet Now request (reuse joinActivity logic for now)
+      const joinActivity = httpsCallable(functions, 'joinActivity');
+      const result = await joinActivity({
+        activityId: null, // null or a special value to indicate Meet Now
+        userId: selectedUser.uid,
+        currentUserLocation: {
+          latitude: currentLat,
+          longitude: currentLon
+        },
+        meetNow: true // custom flag for backend
+      });
+      setMeetNowRequestId(result.data.requestId);
+      // Poll for approval
+      const pollInterval = setInterval(async () => {
+        if (meetNowRequestId) {
+          const checkJoinRequest = httpsCallable(functions, 'checkJoinRequest');
+          const res = await checkJoinRequest({ requestId: meetNowRequestId });
+          if (res.data.status === 'approved') {
+            setMeetNowStatus('approved');
+            clearInterval(pollInterval);
+            // Navigate to map with private route
+            setShowMeetNowModal(false);
+            navigate('/map', {
+              state: {
+                showPrivateRoute: true,
+                routeData: res.data.routeData,
+                meetNow: true,
+                otherUser: selectedUser
+              }
+            });
+          } else if (res.data.status === 'rejected') {
+            setMeetNowStatus('rejected');
+            clearInterval(pollInterval);
+          }
+        }
+      }, 3000);
+      // Countdown timer
+      const timerInterval = setInterval(() => {
+        setMeetNowTimeLeft(prev => {
+          if (prev <= 0) {
+            clearInterval(timerInterval);
+            clearInterval(pollInterval);
+            setMeetNowExpired(true);
+            setMeetNowStatus('rejected');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      // Expire after 25 min
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        clearInterval(timerInterval);
+        if (meetNowStatus === 'pending') {
+          setMeetNowExpired(true);
+          setMeetNowStatus('rejected');
+        }
+      }, 25 * 60 * 1000);
+    } catch (error) {
+      setMeetNowStatus('idle');
+      alert('Failed to send Meet Now request. Please try again.');
+    } finally {
+      setMeetNowLoading(false);
+    }
+  };
+
+  const formatMeetNowTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
 
   return (
     <>
@@ -804,7 +1030,7 @@ const HomePage: React.FC = () => {
             top: '50%', left: '50%', right: 'auto', bottom: 'auto',
             marginRight: '-50%', transform: 'translate(-50%, -50%)',
             borderRadius: '32px', padding: 0, border: 'none', background: 'none',
-            maxWidth: 540, width: '98vw', minHeight: 440, overflow: 'visible',
+            maxWidth: 540, width: '98vw', minHeight: 520, overflow: 'visible',
             boxShadow: '0 12px 48px 0 rgba(30,40,80,0.22)',
           }
         }}
@@ -842,22 +1068,46 @@ const HomePage: React.FC = () => {
             </div>
             {/* Buttons row - stretch to fit, symmetrical */}
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 18, margin: '28px 0 0 0', padding: '0 32px' }}>
-              <button style={{ flex: 1, background: 'linear-gradient(90deg,#007aff 0%,#1ecb83 100%)', color: '#fff', fontWeight: 700, fontSize: 18, border: 'none', borderRadius: 18, padding: '18px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer', minWidth: 0, maxWidth: 'none' }}>
-                <span role="img" aria-label="Meet Now">👥</span> Meet Now
+              <button 
+                onClick={() => setShowMeetNowModal(true)}
+                style={{ flex: 1, background: 'linear-gradient(90deg,#007aff 0%,#1ecb83 100%)', color: '#fff', fontWeight: 700, fontSize: 18, border: 'none', borderRadius: 18, padding: '18px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', minWidth: 0, maxWidth: 'none' }}
+              >
+                <span role="img" aria-label="Meet Now" style={{ fontSize: '32px' }}>👥</span>
+                <span>Meet Now</span>
               </button>
-              <button style={{ flex: 1, background: 'linear-gradient(90deg,#1ecb83 0%,#00b8ff 100%)', color: '#fff', fontWeight: 700, fontSize: 18, border: 'none', borderRadius: 18, padding: '18px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer', minWidth: 0, maxWidth: 'none' }}>
-                <span role="img" aria-label="Send Cool Points">💎</span> Send Cool
+              <button 
+                onClick={() => setShowCoolPointsWallet(true)}
+                style={{ flex: 1, background: 'linear-gradient(90deg,#1ecb83 0%,#00b8ff 100%)', color: '#fff', fontWeight: 700, fontSize: 18, border: 'none', borderRadius: 18, padding: '18px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', minWidth: 0, maxWidth: 'none' }}>
+                <img src="/coin.png" alt="coin" style={{ width: 32, height: 32 }} />
+                <span>Cool Points</span>
               </button>
-              <button onClick={() => setShowActivityCarousel(true)} style={{ flex: 1, background: 'linear-gradient(90deg,#ff6600 0%,#ffb300 100%)', color: '#fff', fontWeight: 700, fontSize: 18, border: 'none', borderRadius: 18, padding: '18px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer', minWidth: 0, maxWidth: 'none' }}>
-                <img src={icon} alt="activity" style={{ width: 28, height: 28, borderRadius: 7 }} /> Activity
+              <button onClick={() => {
+                setShowActivityInfo(true);
+                setCarouselIdx(0);
+                
+                if (selectedUser) {
+                  const fetchActivityInfo = async () => {
+                    try {
+                      const getActivityInfo = httpsCallable(functions, 'getActivityInfo');
+                      const result = await getActivityInfo({ userId: selectedUser.uid });
+                      setActivityInfo(result.data);
+                    } catch (error) {
+                      console.error('Error fetching activity info:', error);
+                      setActivityInfo(null);
+                    }
+                  };
+                  fetchActivityInfo();
+                } else {
+                  setActivityInfo(null);
+                }
+              }} style={{ flex: 1, background: 'linear-gradient(90deg,#ff6600 0%,#ffb300 100%)', color: '#fff', fontWeight: 700, fontSize: 18, border: 'none', borderRadius: 18, padding: '18px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', minWidth: 0, maxWidth: 'none' }}>
+                <img src={icon} alt="activity" style={{ width: 36, height: 36, borderRadius: 9 }} />
+                <span>Activity</span>
               </button>
             </div>
             {/* Info text */}
             <div style={{ color: '#fff', fontWeight: 600, fontSize: 16, textAlign: 'center', margin: '28px 0 0 0', padding: '0 32px' }}>
-              Click! Meet Now for sending real-time request
-            </div>
-            <div style={{ color: '#ff3b30', fontWeight: 700, fontSize: 15, textAlign: 'center', margin: '10px 0 24px 0', padding: '0 32px' }}>
-              REQUIRED APPROVED REQUEST TO UNLOCK<br />Chat & Messaging locked<br />Joining Activities locked<br />P2P real-time location locked
+              Click! Meet Now, to meet in real-time face-to-face. within 25min. If request successful a GPS direct route will open to meet the other user's.
             </div>
           </div>
         )}
@@ -890,6 +1140,493 @@ const HomePage: React.FC = () => {
           <div style={{ color: '#222', fontWeight: 700, fontSize: 15, textAlign: 'center', margin: '18px 0 18px 0' }}>
             Activity Photos
           </div>
+        </div>
+      </Modal>
+      {/* Activity Info Modal */}
+      <Modal
+        isOpen={showActivityInfo}
+        onRequestClose={() => {
+          setShowActivityInfo(false);
+          setJoinRequestStatus('idle');
+          setJoinRequestId(null);
+          setCarouselIndex(0);
+        }}
+        style={{
+          overlay: { backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 1100 },
+          content: {
+            top: '50%', left: '50%', right: 'auto', bottom: 'auto',
+            marginRight: '-50%', transform: 'translate(-50%, -50%)',
+            borderRadius: '24px', padding: 0, border: 'none', background: 'none',
+            maxWidth: 400, width: '95vw', minHeight: 480, overflow: 'visible',
+          }
+        }}
+        ariaHideApp={false}
+      >
+        <div style={{ background: '#fff', borderRadius: 24, padding: 0, position: 'relative', boxShadow: '0 8px 40px 0 rgba(30,40,80,0.18)' }}>
+          <button onClick={() => {
+            setShowActivityInfo(false);
+            setJoinRequestStatus('idle');
+            setJoinRequestId(null);
+            setCarouselIndex(0);
+          }} style={{ position: 'absolute', top: 10, right: 16, background: 'none', border: 'none', color: '#222', fontSize: 28, cursor: 'pointer', zIndex: 2 }}>×</button>
+          
+          {/* Activity Header */}
+          <div style={{ padding: '24px 24px 0 24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <img src={activityInfo?.icon || icon} alt="activity" style={{ width: 40, height: 40, borderRadius: 10 }} />
+              <div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#222' }}>
+                  {activityInfo?.type || 'No Active Activity'}
+                </div>
+                <div style={{ fontSize: '1.1rem', color: '#666', marginTop: 2 }}>
+                  {activityInfo?.location || 'Location not specified'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Activity Photos Carousel */}
+          <div style={{ 
+            width: '100%', 
+            height: 280, 
+            position: 'relative',
+            marginTop: 24,
+            overflow: 'hidden'
+          }}>
+            {/* Carousel Container */}
+            <div style={{
+              display: 'flex',
+              width: '300%',
+              height: '100%',
+              transform: `translateX(-${carouselIndex * 33.333}%)`,
+              transition: 'transform 0.3s ease-in-out'
+            }}>
+              {mockPhotos.map((photo, index) => (
+                <div key={index} style={{
+                  width: '33.333%',
+                  height: '100%',
+                  padding: '0 12px',
+                  boxSizing: 'border-box'
+                }}>
+                  <img 
+                    src={photo} 
+                    alt={`Activity ${index + 1}`} 
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      borderRadius: 16,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Navigation Dots */}
+            <div style={{
+              position: 'absolute',
+              bottom: 16,
+              left: 0,
+              right: 0,
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 8
+            }}>
+              {mockPhotos.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCarouselIndex(index)}
+                  style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: '50%',
+                    border: 'none',
+                    background: carouselIndex === index ? '#ff6600' : '#fff',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    padding: 0,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Navigation Arrows */}
+            <button
+              onClick={() => setCarouselIndex(prev => (prev > 0 ? prev - 1 : mockPhotos.length - 1))}
+              style={{
+                position: 'absolute',
+                left: 16,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'rgba(255,255,255,0.9)',
+                border: 'none',
+                borderRadius: '50%',
+                width: 40,
+                height: 40,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                zIndex: 1
+              }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222" strokeWidth="2">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setCarouselIndex(prev => (prev < mockPhotos.length - 1 ? prev + 1 : 0))}
+              style={{
+                position: 'absolute',
+                right: 16,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'rgba(255,255,255,0.9)',
+                border: 'none',
+                borderRadius: '50%',
+                width: 40,
+                height: 40,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                zIndex: 1
+              }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222" strokeWidth="2">
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Activity Details */}
+          <div style={{ padding: '24px' }}>
+            <div style={{ fontSize: '1.2rem', fontWeight: 600, color: '#222', marginBottom: 12 }}>Activity Details</div>
+            <div style={{ fontSize: '1.1rem', color: '#666', lineHeight: 1.5 }}>
+              {activityInfo?.desc || 'No activity description available'}
+            </div>
+            
+            {/* Activity Stats */}
+            <div style={{ display: 'flex', gap: 24, marginTop: 24 }}>
+              <div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#222' }}>Duration</div>
+                <div style={{ fontSize: '1rem', color: '#666', marginTop: 4 }}>
+                  {activityInfo?.duration || 'Not specified'}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#222' }}>Participants</div>
+                <div style={{ fontSize: '1rem', color: '#666', marginTop: 4 }}>
+                  {activityInfo?.participants ? `${activityInfo.participants.length}/${activityInfo.maxParticipants}` : '0/4'}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#222' }}>Status</div>
+                <div style={{ fontSize: '1rem', color: activityInfo?.isActive ? '#1ecb83' : '#ff3b30', marginTop: 4 }}>
+                  {activityInfo?.isActive ? 'Active' : 'Inactive'}
+                </div>
+              </div>
+            </div>
+
+            {/* Update Join Activity Button and Status Message */}
+            {joinRequestStatus === 'pending' ? (
+              <div style={{ textAlign: 'center', padding: '24px' }}>
+                <div style={{ 
+                  width: 60, 
+                  height: 60, 
+                  border: '3px solid #ff6600', 
+                  borderTop: '3px solid transparent', 
+                  borderRadius: '50%', 
+                  animation: 'spin 1s linear infinite',
+                  margin: '0 auto 16px auto'
+                }} />
+                <div style={{ fontSize: '1.2rem', fontWeight: 600, color: '#222', marginBottom: 8 }}>
+                  Waiting for Approval
+                </div>
+                <div style={{ fontSize: '1rem', color: '#666', lineHeight: 1.5, marginBottom: 12 }}>
+                  Your request to join this activity has been sent. Please wait while {selectedUser?.displayName} reviews your request.
+                </div>
+                <div style={{ 
+                  fontSize: '1.1rem', 
+                  color: timeLeft < 60 ? '#ff3b30' : '#ff6600', 
+                  fontWeight: 600,
+                  marginBottom: 16,
+                  fontFamily: 'monospace'
+                }}>
+                  Time remaining: {formatTime(timeLeft)}
+                </div>
+                <button 
+                  onClick={() => {
+                    setShowActivityInfo(false);
+                    setJoinRequestStatus('idle');
+                    setJoinRequestId(null);
+                    setTimeLeft(25 * 60);
+                    setIsExpired(false);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#ff6600',
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    padding: '8px 16px',
+                    borderRadius: 8
+                  }}
+                >
+                  Cancel Request
+                </button>
+              </div>
+            ) : joinRequestStatus === 'rejected' ? (
+              <div style={{ textAlign: 'center', padding: '24px' }}>
+                <div style={{ 
+                  fontSize: '3rem', 
+                  color: '#ff3b30',
+                  marginBottom: 16
+                }}>×</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 600, color: '#222', marginBottom: 8 }}>
+                  {isExpired ? 'Request Expired' : 'Request Rejected'}
+                </div>
+                <div style={{ fontSize: '1rem', color: '#666', lineHeight: 1.5, marginBottom: 16 }}>
+                  {isExpired 
+                    ? 'Your request to join this activity has expired after 25 minutes without a response.'
+                    : 'Your request to join this activity was not approved.'}
+                </div>
+                <button 
+                  onClick={() => {
+                    setJoinRequestStatus('idle');
+                    setJoinRequestId(null);
+                    setTimeLeft(25 * 60);
+                    setIsExpired(false);
+                  }}
+                  style={{
+                    background: '#ff6600',
+                    border: 'none',
+                    color: '#fff',
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    padding: '12px 24px',
+                    borderRadius: 8
+                  }}
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : (
+              <>
+                <button 
+                  onClick={handleJoinActivity}
+                  disabled={!activityInfo?.isActive || isJoiningActivity}
+                  style={{
+                    width: '100%',
+                    background: 'linear-gradient(90deg, #ff6600 0%, #ffb300 100%)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 16,
+                    padding: '16px',
+                    fontSize: '1.1rem',
+                    fontWeight: 700,
+                    marginTop: 24,
+                    cursor: activityInfo?.isActive && !isJoiningActivity ? 'pointer' : 'not-allowed',
+                    opacity: activityInfo?.isActive ? (isJoiningActivity ? 0.7 : 1) : 0.5,
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8
+                  }}
+                >
+                  {isJoiningActivity ? (
+                    <>
+                      <div style={{ width: 20, height: 20, border: '2px solid #fff', borderTop: '2px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                      Joining...
+                    </>
+                  ) : activityInfo?.isActive ? (
+                    <>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                      Join Activity
+                    </>
+                  ) : (
+                    'Activity Not Available'
+                  )}
+                </button>
+
+                {activityInfo?.isActive && (
+                  <div style={{ 
+                    fontSize: '0.9rem', 
+                    color: '#666', 
+                    textAlign: 'center', 
+                    marginTop: 12,
+                    padding: '0 24px'
+                  }}>
+                    Joining will share your real-time location and create a private route to meet
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </Modal>
+      {/* Add Cool Points Wallet Modal */}
+      <CoolPointsWallet
+        isOpen={showCoolPointsWallet}
+        onClose={() => setShowCoolPointsWallet(false)}
+        recipientId={selectedUser?.uid}
+        initialRecipient={selectedUser ? {
+          uid: selectedUser.uid,
+          displayName: selectedUser.displayName,
+          email: selectedUser.email || '',
+          photoURL: selectedUser.photoURL
+        } : undefined}
+      />
+      {/* Meet Now Info Modal */}
+      <Modal
+        isOpen={showMeetNowModal}
+        onRequestClose={() => setShowMeetNowModal(false)}
+        style={{
+          overlay: { backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 1200 },
+          content: {
+            top: '50%', left: '50%', right: 'auto', bottom: 'auto',
+            marginRight: '-50%', transform: 'translate(-50%, -50%)',
+            borderRadius: '28px', padding: 0, border: 'none', background: '#111',
+            maxWidth: 370, width: '95vw', minHeight: 320, overflow: 'visible',
+            color: '#fff',
+            boxShadow: '0 8px 40px 0 rgba(30,40,80,0.18)'
+          }
+        }}
+        ariaHideApp={false}
+      >
+        <div style={{ padding: 32, textAlign: 'center', position: 'relative' }}>
+          <button onClick={() => setShowMeetNowModal(false)} style={{ position: 'absolute', top: 18, right: 24, background: 'none', border: 'none', color: '#fff', fontSize: 32, cursor: 'pointer', zIndex: 2 }}>×</button>
+          <div style={{ fontSize: '1.7rem', fontWeight: 800, marginBottom: 18 }}>Meet Now</div>
+          {meetNowStatus === 'idle' && (
+            <>
+              <div style={{ fontSize: '1.1rem', color: '#fff', marginBottom: 18, lineHeight: 1.5 }}>
+                1. Send Meet Now request & wait for an Approved or Declined notification response.<br/><br/>
+                2. Approval required to unlock sharing real-time GPS route to user's position, to meet.<br/><br/>
+                <span style={{ color: '#ffe600', fontWeight: 700 }}>
+                  Expiration time 25min<br/>
+                  3/day request attempts per user
+                </span>
+              </div>
+              <button 
+                onClick={handleSendMeetNow}
+                style={{ background: 'linear-gradient(90deg,#007aff 0%,#1ecb83 100%)', color: '#fff', fontWeight: 700, fontSize: 18, border: 'none', borderRadius: 18, padding: '14px 0', width: '100%', marginTop: 18, cursor: 'pointer' }}
+                disabled={meetNowLoading}
+              >
+                {meetNowLoading ? 'Sending...' : 'Send Meet Now Request'}
+              </button>
+            </>
+          )}
+          {meetNowStatus === 'pending' && (
+            <div style={{ textAlign: 'center', padding: '24px' }}>
+              <div style={{ 
+                width: 60, 
+                height: 60, 
+                border: '3px solid #1ecb83', 
+                borderTop: '3px solid transparent', 
+                borderRadius: '50%', 
+                animation: 'spin 1s linear infinite',
+                margin: '0 auto 16px auto'
+              }} />
+              <div style={{ fontSize: '1.2rem', fontWeight: 600, color: '#fff', marginBottom: 8 }}>
+                Waiting for Approval
+              </div>
+              <div style={{ fontSize: '1rem', color: '#eee', lineHeight: 1.5, marginBottom: 12 }}>
+                Your Meet Now request has been sent. Please wait while {selectedUser?.displayName} reviews your request.
+              </div>
+              <div style={{ 
+                fontSize: '1.1rem', 
+                color: meetNowTimeLeft < 60 ? '#ff3b30' : '#1ecb83', 
+                fontWeight: 600,
+                marginBottom: 16,
+                fontFamily: 'monospace'
+              }}>
+                Time remaining: {formatMeetNowTime(meetNowTimeLeft)}
+              </div>
+              <button 
+                onClick={() => {
+                  setMeetNowStatus('idle');
+                  setMeetNowRequestId(null);
+                  setMeetNowTimeLeft(25 * 60);
+                  setMeetNowExpired(false);
+                  setShowMeetNowModal(false);
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#1ecb83',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: '8px 16px',
+                  borderRadius: 8
+                }}
+              >
+                Cancel Request
+              </button>
+            </div>
+          )}
+          {meetNowStatus === 'rejected' && (
+            <div style={{ textAlign: 'center', padding: '24px' }}>
+              <div style={{ 
+                fontSize: '3rem', 
+                color: '#ff3b30',
+                marginBottom: 16
+              }}>×</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 600, color: '#fff', marginBottom: 8 }}>
+                {meetNowExpired ? 'Request Expired' : 'Request Declined'}
+              </div>
+              <div style={{ fontSize: '1rem', color: '#eee', lineHeight: 1.5, marginBottom: 16 }}>
+                {meetNowExpired 
+                  ? 'Your Meet Now request has expired after 25 minutes without a response.'
+                  : 'Your Meet Now request was not approved.'}
+              </div>
+              <button 
+                onClick={() => {
+                  setMeetNowStatus('idle');
+                  setMeetNowRequestId(null);
+                  setMeetNowTimeLeft(25 * 60);
+                  setMeetNowExpired(false);
+                  setShowMeetNowModal(false);
+                }}
+                style={{
+                  background: '#1ecb83',
+                  border: 'none',
+                  color: '#fff',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: '12px 24px',
+                  borderRadius: 8
+                }}
+              >
+                Try Again
+              </button>
+            </div>
+          )}
+          {meetNowStatus === 'approved' && (
+            <div style={{ textAlign: 'center', padding: '24px' }}>
+              <div style={{ 
+                fontSize: '2.5rem', 
+                color: '#1ecb83',
+                marginBottom: 16
+              }}>✔</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 600, color: '#fff', marginBottom: 8 }}>
+                Request Approved!
+              </div>
+              <div style={{ fontSize: '1rem', color: '#eee', lineHeight: 1.5, marginBottom: 16 }}>
+                Real-time GPS location is now shared and a private route has been created in the Map to meet up.
+              </div>
+            </div>
+          )}
         </div>
       </Modal>
     </>
